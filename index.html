@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f4f7fb;padding:20px;color:#111827}
+.container{max-width:1100px;margin:auto}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 5px 15px rgba(0,0,0,0.08)}
+h2,h3{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.metric{background:#f9fafb;padding:15px;border-radius:10px;text-align:center}
+.metric h4{margin:0;color:#666;font-size:13px}
+.metric p{margin:8px 0 0;font-size:20px;font-weight:bold}
+.note{background:#eef4ff;padding:14px;border-radius:12px;line-height:1.6;color:#334155}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:right}
+th:first-child,td:first-child{text-align:left}
+.good{color:#15803d;font-weight:bold}
+.bad{color:#b45309;font-weight:bold}
+.warn{color:#b91c1c;font-weight:bold}
+select{padding:10px;border-radius:10px;border:1px solid #d1d5db;margin-right:10px;margin-bottom:10px}
+canvas{max-height:340px}
+@media (max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="card">
+  <h2>📈 Market Momentum (URA Index)</h2>
+  <select id="series">
+    <option value="Overall">Overall</option>
+    <option value="CCR">CCR</option>
+    <option value="RCR">RCR</option>
+    <option value="OCR" selected>OCR</option>
+  </select>
+
+  <div class="grid">
+    <div class="metric"><h4>Latest YoY</h4><p id="yoy">-</p></div>
+    <div class="metric"><h4>Latest QoQ</h4><p id="qoq">-</p></div>
+    <div class="metric"><h4>Previous YoY</h4><p id="prevYoy">-</p></div>
+    <div class="metric"><h4>Momentum Read</h4><p id="momentumRead">-</p></div>
+  </div>
+
+  <canvas id="momentumChart"></canvas>
+
+  <div class="note" id="marketCommentary" style="margin-top:16px;">No market commentary yet.</div>
+
+  <h3 style="margin-top:18px;">Quarterly Momentum Table</h3>
+  <table id="momentumTable">
+    <thead>
+      <tr>
+        <th>Quarter</th>
+        <th>Index</th>
+        <th>YoY</th>
+        <th>QoQ</th>
+        <th>Read</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5">No quarterly data yet.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>🏠 Deal Analyzer</h2>
+  <select id="district"></select>
+  <select id="project"></select>
+
+  <div class="grid">
+    <div class="metric"><h4>District PSF</h4><p id="dpsf">-</p></div>
+    <div class="metric"><h4>Project PSF</h4><p id="ppsf">-</p></div>
+    <div class="metric"><h4>Deal Score</h4><p id="score">-</p></div>
+    <div class="metric"><h4>Smart Signal</h4><p id="signal">-</p></div>
+  </div>
+
+  <canvas id="dealChart"></canvas>
+
+  <div class="note" id="dealCommentary" style="margin-top:16px;">No deal commentary yet.</div>
+</div>
+
+</div>
+
+<script>
+let uraData, resaleData, mChart, dChart;
+window.currentMarketYoy = null;
+
+function pct(x){ return (x > 0 ? "+" : "") + x.toFixed(1) + "%"; }
+function money(x){ return "$" + Math.round(Number(x || 0)).toLocaleString(); }
+
+function calcYoy(data, i){
+  if(i < 4) return null;
+  return ((data[i].index / data[i-4].index) - 1) * 100;
+}
+function calcQoq(data, i){
+  if(i < 1) return null;
+  return ((data[i].index / data[i-1].index) - 1) * 100;
+}
+function classifyMomentum(currYoy, prevYoy, currQoq){
+  if(currYoy == null) return "Insufficient data";
+  if(prevYoy == null){
+    if(currQoq != null && currQoq < 0) return "Short-term pullback";
+    return currYoy > 0 ? "Growing" : currYoy < 0 ? "Contracting" : "Flat";
+  }
+  if(currYoy > 0 && currYoy > prevYoy) return "Accelerating";
+  if(currYoy > 0 && currYoy < prevYoy) return "Slowing";
+  if(currYoy < 0 && currYoy < prevYoy) return "Worsening";
+  if(currYoy < 0 && currYoy > prevYoy) return "Recovering";
+  if(currQoq != null && currQoq < 0) return "Losing momentum";
+  return "Stable";
+}
+function setClass(el, val){
+  el.className = "";
+  if(val == null) return;
+  if(val > 0) el.className = "good";
+  else if(val < 0) el.className = "warn";
+  else el.className = "bad";
+}
+
+function renderMarket(){
+  const s = document.getElementById("series").value;
+  const d = uraData[s];
+  const i = d.length - 1;
+  const yoy = calcYoy(d, i);
+  const qoq = calcQoq(d, i);
+  const prevYoy = (i - 1) >= 0 ? calcYoy(d, i - 1) : null;
+  window.currentMarketYoy = yoy;
+
+  const momentum = classifyMomentum(yoy, prevYoy, qoq);
+
+  const yoyEl = document.getElementById("yoy");
+  const qoqEl = document.getElementById("qoq");
+  const prevEl = document.getElementById("prevYoy");
+  const readEl = document.getElementById("momentumRead");
+
+  yoyEl.innerText = yoy != null ? pct(yoy) : "-";
+  qoqEl.innerText = qoq != null ? pct(qoq) : "-";
+  prevEl.innerText = prevYoy != null ? pct(prevYoy) : "-";
+  readEl.innerText = momentum;
+
+  setClass(yoyEl, yoy);
+  setClass(qoqEl, qoq);
+  setClass(prevEl, prevYoy);
+
+  const tbody = document.querySelector("#momentumTable tbody");
+  tbody.innerHTML = d.map((row, idx) => {
+    const rowYoy = calcYoy(d, idx);
+    const rowQoq = calcQoq(d, idx);
+    const rowRead = classifyMomentum(rowYoy, idx > 0 ? calcYoy(d, idx-1) : null, rowQoq);
+    return `<tr>
+      <td>${row.quarter}</td>
+      <td>${Number(row.index).toFixed(1)}</td>
+      <td class="${rowYoy == null ? "" : rowYoy > 0 ? "good" : rowYoy < 0 ? "warn" : "bad"}">${rowYoy == null ? "-" : pct(rowYoy)}</td>
+      <td class="${rowQoq == null ? "" : rowQoq > 0 ? "good" : rowQoq < 0 ? "warn" : "bad"}">${rowQoq == null ? "-" : pct(rowQoq)}</td>
+      <td>${rowRead}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("marketCommentary").innerHTML =
+    `<b>Series:</b> ${s}<br>
+     <b>Current YoY:</b> ${yoy != null ? pct(yoy) : "-"}<br>
+     <b>Previous YoY:</b> ${prevYoy != null ? pct(prevYoy) : "-"}<br>
+     <b>Current QoQ:</b> ${qoq != null ? pct(qoq) : "-"}<br>
+     <b>Momentum:</b> <b>${momentum}</b><br><br>
+     ${momentum === "Slowing" ? "Prices are still rising, but the yearly pace is lower than the previous quarter. That suggests the market is cooling." :
+       momentum === "Accelerating" ? "Yearly growth is improving versus the previous quarter. That suggests stronger market momentum." :
+       momentum === "Recovering" ? "The market is still below last year, but the contraction is easing." :
+       momentum === "Worsening" ? "The market is weakening further versus the prior yearly reading." :
+       momentum === "Stable" ? "The market is broadly stable with no major change in yearly momentum." :
+       "There is not enough history yet for a full momentum read."}`;
+
+  if(mChart) mChart.destroy();
+  mChart = new Chart(document.getElementById("momentumChart"), {
+    type:"line",
+    data:{
+      labels:d.map(x=>x.quarter),
+      datasets:[{label:"Index",data:d.map(x=>x.index),tension:0.3,borderWidth:3,fill:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:true}
+  });
+}
+
+function dealScore(premium, perf){
+  let s = 5;
+  if(premium != null) s += (-premium / 4);
+  if(perf != null) s += (perf / 1.5);
+  return Math.max(0, Math.min(10, s));
+}
+function smartSignal(marketYoy, premium, perf, score){
+  if(marketYoy !== null && marketYoy < 0 && premium > 0 && (perf === null || perf < 0)) return "AVOID";
+  if(marketYoy !== null && marketYoy > 0 && premium < 0 && (perf === null || perf >= 0) && score >= 6.5) return "BUY";
+  if(marketYoy !== null && marketYoy > 0 && premium > 0 && perf > 0) return "HOLD";
+  if(marketYoy !== null && marketYoy < 1 && premium > 5) return "CAUTION";
+  return "WATCH";
+}
+function colorSignal(el, text){
+  el.innerText = text;
+  el.className = "";
+  if(text === "BUY") el.className = "good";
+  else if(text === "AVOID" || text === "CAUTION") el.className = "warn";
+  else if(text === "HOLD") el.className = "bad";
+}
+
+function renderDeal(){
+  const d = document.getElementById("district").value;
+  const p = document.getElementById("project").value;
+  const area = resaleData[d];
+  const proj = area.developments[p];
+
+  document.getElementById("dpsf").innerText = money(area.areaMedianPsf);
+  document.getElementById("ppsf").innerText = money(proj.medianPsf);
+
+  const years = Object.keys(area.yearlyTrend);
+  const dpsf = years.map(y => area.yearlyTrend[y].medianPsf);
+
+  const pyears = proj.yearlyTrend ? Object.keys(proj.yearlyTrend) : [];
+  const ppsf = years.map(y => proj.yearlyTrend && proj.yearlyTrend[y] ? proj.yearlyTrend[y].medianPsf : null);
+
+  const premium = ((proj.medianPsf / area.areaMedianPsf) - 1) * 100;
+
+  let perf = null;
+  if(proj.yearlyTrend && pyears.length >= 2){
+    const first = pyears[0], last = pyears[pyears.length - 1];
+    const projPerf = ((proj.yearlyTrend[last].medianPsf / proj.yearlyTrend[first].medianPsf) - 1) * 100;
+    const distPerf = ((area.yearlyTrend[years[years.length-1]].medianPsf / area.yearlyTrend[years[0]].medianPsf) - 1) * 100;
+    perf = projPerf - distPerf;
+  }
+
+  const score = dealScore(premium, perf);
+  document.getElementById("score").innerText = score.toFixed(1);
+
+  const signal = smartSignal(window.currentMarketYoy ?? null, premium, perf, score);
+  colorSignal(document.getElementById("signal"), signal);
+
+  document.getElementById("dealCommentary").innerHTML =
+    `<b>District PSF:</b> ${money(area.areaMedianPsf)}<br>
+     <b>Project PSF:</b> ${money(proj.medianPsf)}<br>
+     <b>Premium / Discount vs district:</b> ${premium >= 0 ? "+" : ""}${premium.toFixed(1)}%<br>
+     <b>Relative performance vs district:</b> ${perf != null ? ((perf >= 0 ? "+" : "") + perf.toFixed(1) + "%") : "Not enough project history"}<br>
+     <b>Deal score:</b> ${score.toFixed(1)} / 10<br>
+     <b>Smart signal:</b> <b>${signal}</b>`;
+
+  if(dChart) dChart.destroy();
+  dChart = new Chart(document.getElementById("dealChart"), {
+    type:"line",
+    data:{
+      labels:years,
+      datasets:[
+        {label:"District",data:dpsf,tension:0.3,borderWidth:3,fill:false},
+        {label:"Project",data:ppsf,tension:0.3,borderWidth:3,fill:false}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:true,spanGaps:true}
+  });
+}
+
+function init(){
+  const d = Object.keys(resaleData);
+  document.getElementById("district").innerHTML = d.map(x=>`<option>${x}</option>`).join("");
+  updateProject();
+  renderDeal();
+}
+function updateProject(){
+  const d = document.getElementById("district").value;
+  const p = Object.keys(resaleData[d].developments);
+  document.getElementById("project").innerHTML = p.map(x=>`<option>${x}</option>`).join("");
+}
+
+fetch("./ura-index.json").then(r=>r.json()).then(d=>{ uraData=d; renderMarket(); });
+fetch("./resale-data.json").then(r=>r.json()).then(d=>{ resaleData=d; init(); });
+
+document.getElementById("series").addEventListener("change",renderMarket);
+document.getElementById("district").addEventListener("change",()=>{ updateProject(); renderDeal(); });
+document.getElementById("project").addEventListener("change",renderDeal);
+</script>
+</body>
+</html>
