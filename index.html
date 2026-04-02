@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resale Market Insights Premium</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#eef4fb;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;
+      --blue1:#4f7df3;--blue2:#274cda;--pill:#eff6ff;--shadow:0 12px 30px rgba(15,23,42,.08);
+      --success:#15803d;--warning:#b45309;--soft:#f8fbff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#f8fbff 100%);color:var(--text);padding:22px}
+    .wrap{max-width:1120px;margin:0 auto}
+    .hero,.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero{padding:28px;margin-bottom:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+    .hero h1{margin:0 0 8px;font-size:34px;line-height:1.05;letter-spacing:-0.02em}
+    .hero p{margin:0;color:var(--muted);line-height:1.55;max-width:760px}
+    .hero-badge{background:linear-gradient(135deg,var(--blue1),var(--blue2));color:#fff;padding:10px 14px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:340px 1fr;gap:18px}
+    .card{padding:22px}
+    .card h2,.card h3{margin:0 0 14px;letter-spacing:-0.02em}
+    .card h2{font-size:22px}.card h3{font-size:18px}
+    .inputs{display:grid;gap:14px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700}
+    select,button{width:100%;padding:13px 14px;border-radius:14px;font-size:15px}
+    select{border:1px solid #d7e0ee;background:#fff;color:var(--text)}
+    button{border:none;color:#fff;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--blue1),var(--blue2));box-shadow:0 10px 20px rgba(39,76,218,.22)}
+    .top-metrics,.mini-metrics{display:grid;gap:12px;margin-bottom:14px}
+    .top-metrics{grid-template-columns:1fr 1fr}.mini-metrics{grid-template-columns:1fr 1fr 1fr 1fr}
+    .metric,.mini{border:1px solid var(--line);border-radius:20px;padding:16px;background:#fff}
+    .metric .label,.mini .label{color:var(--muted);font-size:13px;font-weight:700;margin-bottom:8px}
+    .metric .value{font-size:30px;font-weight:800;line-height:1.05}
+    .mini .value{font-size:22px;font-weight:800}
+    .section{border:1px solid var(--line);border-radius:20px;padding:16px;background:#fff;margin-top:14px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .pill{background:var(--pill);color:var(--blue2);border:1px solid #dbeafe;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:11px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+    th:first-child,td:first-child{text-align:left}
+    th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+    .positive{color:var(--success)!important;font-weight:800}
+    .negative{color:var(--warning)!important;font-weight:800}
+    .insight{background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);border:1px solid #dbeafe;border-radius:18px;padding:16px;line-height:1.7;color:#334155;font-size:14px}
+    .insight b{color:#0f172a}
+    .empty,.helper{color:var(--muted);font-size:14px}
+    .soft-box{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:14px;color:#475569;font-size:13px;line-height:1.55}
+    canvas{width:100% !important;max-height:380px}
+    @media (max-width:900px){.grid,.top-metrics,.mini-metrics{grid-template-columns:1fr}.hero h1{font-size:30px}body{padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>Resale Market Insights</h1>
+          <p>Premium district and development benchmark module showing district trend, project trend, median PSF, yearly growth, and project performance versus district.</p>
+        </div>
+        <div class="hero-badge">Premium Add-On</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Inputs</h2>
+        <div class="inputs">
+          <div>
+            <label for="district">Area / District</label>
+            <select id="district"></select>
+          </div>
+          <div>
+            <label for="development">Development</label>
+            <select id="development"></select>
+          </div>
+          <div>
+            <button onclick="renderInsights()">Load Market Insights</button>
+          </div>
+          <div class="soft-box">
+            Put <b>market-insights-dual-trend.html</b> and <b>resale-data.json</b> in the same folder.
+            <br><br>
+            <b>Best data format:</b> each project should also include its own <b>yearlyTrend</b>. If project yearly trend is missing, the page will still work, but the project trend line and project CAGR will show as unavailable.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="top-metrics">
+          <div class="metric">
+            <div class="label">District Median PSF</div>
+            <div id="areaMedianPsf" class="value">$0</div>
+          </div>
+          <div class="metric">
+            <div class="label">Project Median PSF</div>
+            <div id="projectMedianPsf" class="value">$0</div>
+          </div>
+        </div>
+
+        <div class="mini-metrics">
+          <div class="mini">
+            <div class="label">District 5Y CAGR</div>
+            <div id="districtCagr" class="value">-</div>
+          </div>
+          <div class="mini">
+            <div class="label">Project 5Y CAGR</div>
+            <div id="projectCagr" class="value">-</div>
+          </div>
+          <div class="mini">
+            <div class="label">PSF Premium / Discount</div>
+            <div id="premiumDiscount" class="value">-</div>
+          </div>
+          <div class="mini">
+            <div class="label">Out / Underperformance</div>
+            <div id="performanceGap" class="value">-</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h3>District vs Project Price Trend</h3>
+            <div class="pill">Dual Trend</div>
+          </div>
+          <canvas id="trendChart"></canvas>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h3>Yearly Comparison</h3>
+            <div class="pill">District vs Project</div>
+          </div>
+          <table id="growthTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>District PSF</th>
+                <th>District Growth</th>
+                <th>Project PSF</th>
+                <th>Project Growth</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="5" class="empty">No data loaded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h3>Sales Insight</h3>
+            <div class="pill">Pitch Ready</div>
+          </div>
+          <div id="insightNote" class="insight">
+            Choose an area and development to load the benchmark.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let resaleData = null;
+let chart = null;
+
+function money(x){ return "$" + Math.round(Number(x || 0)).toLocaleString(); }
+function pct(x){ return Number(x).toFixed(1) + "%"; }
+
+function calcCagrFromTrend(trendObj){
+  if(!trendObj) return null;
+  const years = Object.keys(trendObj).sort();
+  if(years.length < 2) return null;
+  const first = Number(trendObj[years[0]].medianPsf || 0);
+  const last = Number(trendObj[years[years.length - 1]].medianPsf || 0);
+  const yearsCount = years.length - 1;
+  if(first <= 0 || last <= 0 || yearsCount <= 0) return null;
+  return (Math.pow(last / first, 1 / yearsCount) - 1) * 100;
+}
+
+function formatSignedPct(value){
+  if(value === null || value === undefined || Number.isNaN(value)) return "-";
+  const sign = value > 0 ? "+" : "";
+  return sign + pct(value);
+}
+
+function setSignedValue(id, value){
+  const el = document.getElementById(id);
+  if(value === null || value === undefined || Number.isNaN(value)){
+    el.textContent = "-";
+    el.className = "value";
+    return;
+  }
+  el.textContent = formatSignedPct(value);
+  el.className = "value " + (value >= 0 ? "positive" : "negative");
+}
+
+function fillDistricts(){
+  const districtEl = document.getElementById("district");
+  const names = Object.keys(resaleData || {});
+  districtEl.innerHTML = names.map(name => `<option value="${name}">${name}</option>`).join("");
+  fillDevelopments();
+}
+
+function fillDevelopments(){
+  const district = document.getElementById("district").value;
+  const developmentEl = document.getElementById("development");
+  if(!district || !resaleData[district]){
+    developmentEl.innerHTML = "";
+    return;
+  }
+  const projects = Object.keys(resaleData[district].developments || {});
+  developmentEl.innerHTML = projects.map(name => `<option value="${name}">${name}</option>`).join("");
+}
+
+function renderInsights(){
+  const district = document.getElementById("district").value;
+  const development = document.getElementById("development").value;
+  if(!district || !development || !resaleData || !resaleData[district]) return;
+
+  const area = resaleData[district];
+  const project = area.developments[development] || {};
+
+  document.getElementById("areaMedianPsf").textContent = money(area.areaMedianPsf);
+  document.getElementById("projectMedianPsf").textContent = money(project.medianPsf || 0);
+
+  const districtYears = Object.keys(area.yearlyTrend || {}).sort();
+  const projectTrend = project.yearlyTrend || null;
+  const projectYears = projectTrend ? Object.keys(projectTrend).sort() : [];
+  const mergedYears = [...new Set([...districtYears, ...projectYears])].sort();
+
+  const districtCagr = calcCagrFromTrend(area.yearlyTrend);
+  const projectCagr = calcCagrFromTrend(projectTrend);
+
+  setSignedValue("districtCagr", districtCagr);
+  setSignedValue("projectCagr", projectCagr);
+
+  const premiumPct = (Number(area.areaMedianPsf || 0) > 0 && Number(project.medianPsf || 0) > 0)
+    ? ((Number(project.medianPsf) / Number(area.areaMedianPsf)) - 1) * 100
+    : null;
+  setSignedValue("premiumDiscount", premiumPct);
+
+  const perfGap = (districtCagr !== null && projectCagr !== null) ? (projectCagr - districtCagr) : null;
+  setSignedValue("performanceGap", perfGap);
+
+  const districtSeries = mergedYears.map(y => area.yearlyTrend && area.yearlyTrend[y] ? Number(area.yearlyTrend[y].medianPsf) : null);
+  const projectSeries = mergedYears.map(y => projectTrend && projectTrend[y] ? Number(projectTrend[y].medianPsf) : null);
+
+  const tbody = document.querySelector("#growthTable tbody");
+  tbody.innerHTML = mergedYears.map(y => {
+    const dPsf = area.yearlyTrend && area.yearlyTrend[y] ? money(area.yearlyTrend[y].medianPsf) : "-";
+    const dGrowth = area.yearlyTrend && area.yearlyTrend[y] ? Number(area.yearlyTrend[y].growth || 0) : null;
+    const pPsf = projectTrend && projectTrend[y] ? money(projectTrend[y].medianPsf) : "-";
+    const pGrowth = projectTrend && projectTrend[y] ? Number(projectTrend[y].growth || 0) : null;
+    return `
+      <tr>
+        <td>${y}</td>
+        <td>${dPsf}</td>
+        <td class="${dGrowth !== null ? (dGrowth >= 0 ? "positive" : "negative") : ""}">${dGrowth !== null ? pct(dGrowth) : "-"}</td>
+        <td>${pPsf}</td>
+        <td class="${pGrowth !== null ? (pGrowth >= 0 ? "positive" : "negative") : ""}">${pGrowth !== null ? pct(pGrowth) : "-"}</td>
+      </tr>
+    `;
+  }).join("");
+
+  if(chart) chart.destroy();
+  chart = new Chart(document.getElementById("trendChart"), {
+    type: "line",
+    data: {
+      labels: mergedYears,
+      datasets: [
+        { label: "District Median PSF", data: districtSeries, tension: 0.3, borderWidth: 3, fill: false },
+        { label: "Project Median PSF", data: projectSeries, tension: 0.3, borderWidth: 3, fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      spanGaps: true,
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: false } }
+    }
+  });
+
+  let insight = "<b>District benchmark:</b> " + district +
+    "<br><b>Project benchmark:</b> " + development +
+    "<br><b>District median PSF:</b> " + money(area.areaMedianPsf) +
+    "<br><b>Project median PSF:</b> " + money(project.medianPsf || 0);
+
+  if(premiumPct !== null){
+    insight += "<br><b>Project vs district pricing:</b> " +
+      (premiumPct >= 0 ? "Trading above district by " : "Trading below district by ") +
+      "<b>" + pct(Math.abs(premiumPct)) + "</b>";
+  }
+
+  if(districtCagr !== null) insight += "<br><b>District annualised growth:</b> " + pct(districtCagr);
+  if(projectCagr !== null){
+    insight += "<br><b>Project annualised growth:</b> " + pct(projectCagr);
+  } else {
+    insight += "<br><b>Project annualised growth:</b> Not available in current JSON. Add <b>project yearlyTrend</b> to show full project trend.";
+  }
+
+  if(perfGap !== null){
+    insight += "<br><b>Project performance vs district:</b> " +
+      (perfGap >= 0 ? "Outperforming by " : "Underperforming by ") +
+      "<b>" + pct(Math.abs(perfGap)) + " p.a.</b>";
+  }
+
+  insight += "<br><br>This removes the earlier confusion by clearly separating <b>district trend</b> and <b>project trend</b> in the same chart.";
+  document.getElementById("insightNote").innerHTML = insight;
+}
+
+fetch("./resale-data.json")
+  .then(r => r.json())
+  .then(data => {
+    resaleData = data;
+    fillDistricts();
+    renderInsights();
+  })
+  .catch(() => {
+    document.getElementById("insightNote").innerHTML = "Unable to load <b>resale-data.json</b>. Make sure the HTML and JSON are in the same folder.";
+  });
+
+document.getElementById("district").addEventListener("change", () => {
+  fillDevelopments();
+  renderInsights();
+});
+document.getElementById("development").addEventListener("change", renderInsights);
+</script>
+</body>
+</html>
