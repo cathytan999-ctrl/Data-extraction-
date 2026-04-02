@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>URA Market Momentum</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#eef4fb;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;
+      --blue1:#4f7df3;--blue2:#274cda;--pill:#eff6ff;--shadow:0 12px 30px rgba(15,23,42,.08);
+      --success:#15803d;--warning:#b45309;--danger:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#f8fbff 100%);color:var(--text);padding:22px}
+    .wrap{max-width:1120px;margin:0 auto}
+    .hero,.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero{padding:28px;margin-bottom:18px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+    .hero h1{margin:0 0 8px;font-size:34px;line-height:1.05;letter-spacing:-0.02em}
+    .hero p{margin:0;color:var(--muted);line-height:1.55;max-width:760px}
+    .hero-badge{background:linear-gradient(135deg,var(--blue1),var(--blue2));color:#fff;padding:10px 14px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:18px}
+    .card{padding:22px}
+    .card h2,.card h3{margin:0 0 14px;letter-spacing:-0.02em}
+    .card h2{font-size:22px}.card h3{font-size:18px}
+    .inputs{display:grid;gap:14px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700}
+    select,button{width:100%;padding:13px 14px;border-radius:14px;font-size:15px}
+    select{border:1px solid #d7e0ee;background:#fff;color:var(--text)}
+    button{border:none;color:#fff;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--blue1),var(--blue2));box-shadow:0 10px 20px rgba(39,76,218,.22)}
+    .helper{color:var(--muted);font-size:12px;line-height:1.55}
+    .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+    .metric{border:1px solid var(--line);border-radius:20px;padding:16px;background:#fff}
+    .metric .label{color:var(--muted);font-size:13px;font-weight:700;margin-bottom:8px}
+    .metric .value{font-size:28px;font-weight:800;line-height:1.05}
+    .section{border:1px solid var(--line);border-radius:20px;padding:16px;background:#fff;margin-top:14px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .pill{background:var(--pill);color:var(--blue2);border:1px solid #dbeafe;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:11px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+    th:first-child,td:first-child{text-align:left}
+    th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+    .positive{color:var(--success)!important;font-weight:800}
+    .negative{color:var(--danger)!important;font-weight:800}
+    .neutral{color:var(--warning)!important;font-weight:800}
+    .insight{background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);border:1px solid #dbeafe;border-radius:18px;padding:16px;line-height:1.7;color:#334155;font-size:14px}
+    .soft-box{background:#f8fbff;border:1px solid var(--line);border-radius:16px;padding:14px;color:#475569;font-size:13px;line-height:1.55}
+    canvas{width:100% !important;max-height:360px}
+    @media (max-width:900px){.grid,.metrics{grid-template-columns:1fr}.hero h1{font-size:30px}body{padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>URA Market Momentum</h1>
+          <p>Macro market add-on showing quarterly price index, YoY growth, QoQ movement, and momentum direction for Overall, CCR, RCR, and OCR.</p>
+        </div>
+        <div class="hero-badge">Macro Add-On</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Inputs</h2>
+        <div class="inputs">
+          <div>
+            <label for="seriesSelect">Series</label>
+            <select id="seriesSelect">
+              <option value="Overall">Overall</option>
+              <option value="CCR">CCR</option>
+              <option value="RCR">RCR</option>
+              <option value="OCR" selected>OCR</option>
+            </select>
+          </div>
+          <div>
+            <button onclick="renderMomentum()">Load Market Momentum</button>
+          </div>
+          <div class="soft-box">
+            Put <b>market-momentum.html</b> and <b>ura-index.json</b> in the same folder.
+            <br><br>
+            Export your quarterly URA index data into the same JSON format and this page will auto-calculate <b>YoY</b>, <b>QoQ</b>, and <b>slowing / accelerating</b>.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="metrics">
+          <div class="metric">
+            <div class="label">Latest Quarter</div>
+            <div id="latestQuarter" class="value">-</div>
+          </div>
+          <div class="metric">
+            <div class="label">YoY Growth</div>
+            <div id="latestYoy" class="value">-</div>
+          </div>
+          <div class="metric">
+            <div class="label">QoQ Growth</div>
+            <div id="latestQoq" class="value">-</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h3>Quarterly Price Index</h3>
+            <div class="pill">URA Index</div>
+          </div>
+          <canvas id="momentumChart"></canvas>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h3>Quarterly Growth Table</h3>
+            <div class="pill">YoY & QoQ</div>
+          </div>
+          <table id="momentumTable">
+            <thead>
+              <tr>
+                <th>Quarter</th>
+                <th>Index</th>
+                <th>YoY</th>
+                <th>QoQ</th>
+                <th>Momentum</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="5">No data loaded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h3>Market Read</h3>
+            <div class="pill">Sales Talking Point</div>
+          </div>
+          <div id="insightBox" class="insight">
+            Select a series to load the quarterly market momentum.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let uraIndex = null;
+let chart = null;
+
+function pct(x){ return Number(x).toFixed(1) + "%"; }
+
+function calcYoy(data, idx){
+  if(idx < 4) return null;
+  const prev = Number(data[idx - 4].index);
+  const curr = Number(data[idx].index);
+  if(prev <= 0 || curr <= 0) return null;
+  return ((curr / prev) - 1) * 100;
+}
+
+function calcQoq(data, idx){
+  if(idx < 1) return null;
+  const prev = Number(data[idx - 1].index);
+  const curr = Number(data[idx].index);
+  if(prev <= 0 || curr <= 0) return null;
+  return ((curr / prev) - 1) * 100;
+}
+
+function setSignedText(el, value){
+  if(value === null || value === undefined || Number.isNaN(value)){
+    el.textContent = "-";
+    el.className = "value";
+    return;
+  }
+  el.textContent = (value > 0 ? "+" : "") + pct(value);
+  el.className = "value " + (value > 0 ? "positive" : value < 0 ? "negative" : "neutral");
+}
+
+function momentumLabel(currentYoy, previousYoy){
+  if(currentYoy === null) return "Insufficient data";
+  if(previousYoy === null) return currentYoy > 0 ? "Rising" : currentYoy < 0 ? "Falling" : "Flat";
+  if(currentYoy > 0 && currentYoy > previousYoy) return "Accelerating";
+  if(currentYoy > 0 && currentYoy < previousYoy) return "Slowing";
+  if(currentYoy < 0 && currentYoy < previousYoy) return "Worsening";
+  if(currentYoy < 0 && currentYoy > previousYoy) return "Recovering";
+  return "Stable";
+}
+
+function renderMomentum(){
+  const series = document.getElementById("seriesSelect").value;
+  const data = (uraIndex && uraIndex[series]) ? uraIndex[series] : [];
+  if(!data.length) return;
+
+  const labels = data.map(x => x.quarter);
+  const values = data.map(x => Number(x.index));
+  const yoy = data.map((_, i) => calcYoy(data, i));
+  const qoq = data.map((_, i) => calcQoq(data, i));
+
+  const lastIdx = data.length - 1;
+  const latestYoy = yoy[lastIdx];
+  const previousYoy = yoy[lastIdx - 1] ?? null;
+  const latestQoq = qoq[lastIdx];
+  const latestQuarter = data[lastIdx].quarter;
+  const latestMomentum = momentumLabel(latestYoy, previousYoy);
+
+  document.getElementById("latestQuarter").textContent = latestQuarter;
+  setSignedText(document.getElementById("latestYoy"), latestYoy);
+  setSignedText(document.getElementById("latestQoq"), latestQoq);
+
+  const tbody = document.querySelector("#momentumTable tbody");
+  tbody.innerHTML = data.map((row, i) => {
+    const rowYoy = yoy[i];
+    const rowQoq = qoq[i];
+    const rowMomentum = momentumLabel(rowYoy, i > 0 ? yoy[i - 1] : null);
+    return `
+      <tr>
+        <td>${row.quarter}</td>
+        <td>${Number(row.index).toFixed(1)}</td>
+        <td class="${rowYoy === null ? "" : (rowYoy > 0 ? "positive" : rowYoy < 0 ? "negative" : "neutral")}">${rowYoy === null ? "-" : ((rowYoy > 0 ? "+" : "") + pct(rowYoy))}</td>
+        <td class="${rowQoq === null ? "" : (rowQoq > 0 ? "positive" : rowQoq < 0 ? "negative" : "neutral")}">${rowQoq === null ? "-" : ((rowQoq > 0 ? "+" : "") + pct(rowQoq))}</td>
+        <td>${rowMomentum}</td>
+      </tr>
+    `;
+  }).join("");
+
+  if(chart) chart.destroy();
+  chart = new Chart(document.getElementById("momentumChart"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: series + " Price Index",
+        data: values,
+        tension: 0.3,
+        borderWidth: 3,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: false } }
+    }
+  });
+
+  document.getElementById("insightBox").innerHTML =
+    "<b>Series:</b> " + series +
+    "<br><b>Latest quarter:</b> " + latestQuarter +
+    "<br><b>YoY growth:</b> " + (latestYoy === null ? "-" : ((latestYoy > 0 ? "+" : "") + pct(latestYoy))) +
+    "<br><b>QoQ growth:</b> " + (latestQoq === null ? "-" : ((latestQoq > 0 ? "+" : "") + pct(latestQoq))) +
+    "<br><b>Momentum read:</b> <b>" + latestMomentum + "</b>" +
+    "<br><br>This tells you whether prices are still rising but slowing, accelerating, flat, or turning down. Use this as the macro market backdrop before discussing district or project-level pricing.";
+}
+
+fetch("./ura-index.json")
+  .then(r => r.json())
+  .then(data => {
+    uraIndex = data;
+    renderMomentum();
+  })
+  .catch(() => {
+    document.getElementById("insightBox").innerHTML = "Unable to load <b>ura-index.json</b>. Put the HTML and JSON in the same folder.";
+  });
+
+document.getElementById("seriesSelect").addEventListener("change", renderMomentum);
+</script>
+</body>
+</html>

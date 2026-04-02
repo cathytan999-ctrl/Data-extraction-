@@ -1,0 +1,138 @@
+{
+  "Overall": [
+    {
+      "quarter": "2024 Q1",
+      "index": 180.0
+    },
+    {
+      "quarter": "2024 Q2",
+      "index": 181.2
+    },
+    {
+      "quarter": "2024 Q3",
+      "index": 182.0
+    },
+    {
+      "quarter": "2024 Q4",
+      "index": 182.8
+    },
+    {
+      "quarter": "2025 Q1",
+      "index": 184.0
+    },
+    {
+      "quarter": "2025 Q2",
+      "index": 185.1
+    },
+    {
+      "quarter": "2025 Q3",
+      "index": 186.0
+    },
+    {
+      "quarter": "2025 Q4",
+      "index": 186.6
+    }
+  ],
+  "CCR": [
+    {
+      "quarter": "2024 Q1",
+      "index": 170.0
+    },
+    {
+      "quarter": "2024 Q2",
+      "index": 170.8
+    },
+    {
+      "quarter": "2024 Q3",
+      "index": 171.1
+    },
+    {
+      "quarter": "2024 Q4",
+      "index": 171.6
+    },
+    {
+      "quarter": "2025 Q1",
+      "index": 172.2
+    },
+    {
+      "quarter": "2025 Q2",
+      "index": 173.0
+    },
+    {
+      "quarter": "2025 Q3",
+      "index": 173.4
+    },
+    {
+      "quarter": "2025 Q4",
+      "index": 173.8
+    }
+  ],
+  "RCR": [
+    {
+      "quarter": "2024 Q1",
+      "index": 184.0
+    },
+    {
+      "quarter": "2024 Q2",
+      "index": 185.5
+    },
+    {
+      "quarter": "2024 Q3",
+      "index": 186.4
+    },
+    {
+      "quarter": "2024 Q4",
+      "index": 187.2
+    },
+    {
+      "quarter": "2025 Q1",
+      "index": 188.8
+    },
+    {
+      "quarter": "2025 Q2",
+      "index": 190.0
+    },
+    {
+      "quarter": "2025 Q3",
+      "index": 191.0
+    },
+    {
+      "quarter": "2025 Q4",
+      "index": 191.6
+    }
+  ],
+  "OCR": [
+    {
+      "quarter": "2024 Q1",
+      "index": 192.0
+    },
+    {
+      "quarter": "2024 Q2",
+      "index": 194.4
+    },
+    {
+      "quarter": "2024 Q3",
+      "index": 195.6
+    },
+    {
+      "quarter": "2024 Q4",
+      "index": 196.8
+    },
+    {
+      "quarter": "2025 Q1",
+      "index": 198.0
+    },
+    {
+      "quarter": "2025 Q2",
+      "index": 198.9
+    },
+    {
+      "quarter": "2025 Q3",
+      "index": 199.5
+    },
+    {
+      "quarter": "2025 Q4",
+      "index": 199.9
+    }
+  ]
+}
