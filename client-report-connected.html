@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Report Connected</title>
+<style>
+:root{--bg:#eef4fb;--card:#fff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--blue1:#4f7df3;--blue2:#274cda;--shadow:0 10px 24px rgba(15,23,42,.08);--soft:#f8fbff;--good:#15803d;--warn:#b45309;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#f8fbff 100%);color:var(--text);padding:20px}
+.wrap{max-width:1160px;margin:auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
+.hero{padding:28px}
+.pill{display:inline-block;padding:7px 11px;border-radius:999px;background:#eff6ff;border:1px solid #dbeafe;color:#274cda;font-size:12px;font-weight:700;margin-bottom:10px}
+h1,h2{margin:0 0 12px}
+.muted{color:var(--muted);line-height:1.6}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.metric{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:14px}
+.metric .k{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.metric .v{font-size:24px;font-weight:800}
+.note{background:#eef4ff;border:1px solid #dbeafe;padding:16px;border-radius:16px;line-height:1.7;color:#334155}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+.badge{display:inline-block;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800}
+.good{background:#ecfdf3;color:var(--good);border:1px solid #bbf7d0}
+.warn{background:#fff7ed;color:var(--warn);border:1px solid #fed7aa}
+.bad{background:#fef2f2;color:var(--bad);border:1px solid #fecaca}
+.neutral{background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-block;padding:13px 16px;border:none;border-radius:14px;font-weight:800;cursor:pointer;text-decoration:none}
+.primary{background:linear-gradient(135deg,var(--blue1),var(--blue2));color:#fff}
+.secondary{background:#fff;border:1px solid var(--line);color:var(--text)}
+@media (max-width:900px){.grid4{grid-template-columns:1fr 1fr}}
+@media print{body{background:#fff;padding:0}.editor{display:none!important}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card hero editor">
+    <div class="pill">Premium Connected Report</div>
+    <h1>Client Report Generator</h1>
+    <p class="muted">This page pulls the saved scenario from the connected scenario builder and the latest benchmark reading from the dashboard.</p>
+    <div class="actions" style="margin-top:14px">
+      <a class="btn secondary" href="scenario-builder.html">Back to Scenario Builder</a>
+      <a class="btn secondary" href="property-dashboard-connected.html">Back to Dashboard</a>
+      <button class="btn primary" onclick="window.print()">Print / Save PDF</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="pill" id="reportType">Client Property Report</div>
+    <h1 id="title">Client Property Report</h1>
+    <p class="muted" id="subtitle">Prepared summary and benchmark review.</p>
+    <div class="grid4" style="margin-top:16px">
+      <div class="metric"><div class="k">Client</div><div class="v" id="client">-</div></div>
+      <div class="metric"><div class="k">Prepared Date</div><div class="v" id="date">-</div></div>
+      <div class="metric"><div class="k">Advisor</div><div class="v" id="advisor">-</div></div>
+      <div class="metric"><div class="k">Recommendation</div><div class="v"><span id="recBadge" class="badge neutral">Hold</span></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Executive Summary</h2>
+    <div class="note" id="summaryBox">No summary available yet.</div>
+  </div>
+
+  <div class="card">
+    <h2>Scenario Snapshot</h2>
+    <div class="grid4">
+      <div class="metric"><div class="k">Purchase Price</div><div class="v" id="purchase">-</div></div>
+      <div class="metric"><div class="k">Loan Ratio</div><div class="v" id="loan">-</div></div>
+      <div class="metric"><div class="k">Holding Period</div><div class="v" id="holding">-</div></div>
+      <div class="metric"><div class="k">Mode</div><div class="v" id="mode">-</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>New vs Resale Comparison</h2>
+    <table>
+      <thead><tr><th>Item</th><th>New</th><th>Resale</th></tr></thead>
+      <tbody>
+        <tr><td>Total Profit</td><td id="newProfit">-</td><td id="resaleProfit">-</td></tr>
+        <tr><td>Monthly Cashflow</td><td id="newCf">-</td><td id="resaleCf">-</td></tr>
+        <tr><td>Break-even Growth p.a.</td><td id="beNew">-</td><td id="beResale">-</td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-top:14px"><b>Winner:</b> <span id="winner">-</span><br><b>Profit Difference:</b> <span id="profitDiff">-</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Market & Benchmark Review</h2>
+    <div class="grid4">
+      <div class="metric"><div class="k">District PSF</div><div class="v" id="districtPsf">-</div></div>
+      <div class="metric"><div class="k">Project PSF</div><div class="v" id="projectPsf">-</div></div>
+      <div class="metric"><div class="k">Deal Score</div><div class="v" id="dealScore">-</div></div>
+      <div class="metric"><div class="k">Smart Signal</div><div class="v" id="smartSignal">-</div></div>
+    </div>
+    <table style="margin-top:14px">
+      <thead><tr><th>Metric</th><th>Reading</th></tr></thead>
+      <tbody>
+        <tr><td>Project / Development</td><td id="projectName">-</td></tr>
+        <tr><td>District / Area</td><td id="districtName">-</td></tr>
+        <tr><td>Premium / Discount vs District</td><td id="premium">-</td></tr>
+        <tr><td>Relative Performance vs District</td><td id="relativePerf">-</td></tr>
+        <tr><td>Series</td><td id="series">-</td></tr>
+        <tr><td>Current YoY</td><td id="marketYoy">-</td></tr>
+        <tr><td>Current QoQ</td><td id="marketQoq">-</td></tr>
+        <tr><td>Momentum Read</td><td id="momentum">-</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Recommendation & Notes</h2>
+    <div class="note"><b>Recommendation:</b> <span id="recommendation">-</span><br><b>Confidence:</b> <span id="confidence">-</span><br><br><div id="notes">No notes provided.</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Disclaimer & Data Credits</h2>
+    <div class="muted">This report is for general comparison and illustration purposes only. Figures depend on the assumptions entered by the user and the uploaded data files used in the tool. Data credits: Singapore open data portal quarterly private residential property price index dataset, and private residential transaction export data from the official transaction search service.</div>
+  </div>
+</div>
+
+<script>
+function read(name){ try{return JSON.parse(localStorage.getItem(name) || "{}");}catch(e){return {};} }
+function fmtMoney(v){ if(v === "" || v == null) return "-"; const n = Number(String(v).replace(/,/g,"")); return Number.isFinite(n) ? "$" + Math.round(n).toLocaleString() : v; }
+function fmtPct(v){ if(v === "" || v == null) return "-"; const n = Number(String(v).replace(/,/g,"")); return Number.isFinite(n) ? (n>0?"+":"") + n.toFixed(1) + "%" : v; }
+function setBadge(text){
+  const el = document.getElementById("recBadge"); el.textContent = text || "Hold"; el.className = "badge neutral";
+  const t = (text || "").toLowerCase();
+  if(t.includes("buy")) el.className = "badge good";
+  else if(t.includes("hold")) el.className = "badge neutral";
+  else if(t.includes("caution")) el.className = "badge warn";
+  else if(t.includes("avoid")) el.className = "badge bad";
+}
+function autoSummary(calc, dash){
+  return `${calc.projectName || "This project"} in ${dash.districtName || calc.districtName || "the selected district"} is currently ${dash.premium ? fmtPct(dash.premium) + " versus district pricing" : "being benchmarked against district pricing"}. The latest market reading is ${dash.momentum || "neutral"}, with YoY ${dash.marketYoy ? fmtPct(dash.marketYoy) : "-"} and QoQ ${dash.marketQoq ? fmtPct(dash.marketQoq) : "-"}. The current smart signal is ${dash.smartSignal || calc.recommendation || "Hold"}, while the scenario comparison currently favours ${calc.winner || "the stronger option based on your inputs"}.`;
+}
+(function fill(){
+  const calc = read("calcData"), dash = read("dashboardData");
+  document.getElementById("reportType").textContent = calc.reportType || "Client Property Report";
+  document.getElementById("title").textContent = calc.projectName ? `${calc.projectName} Client Report` : "Client Property Report";
+  document.getElementById("subtitle").textContent = (dash.districtName || calc.districtName) ? `District / Area: ${dash.districtName || calc.districtName}` : "Prepared summary and benchmark review.";
+  document.getElementById("client").textContent = calc.clientName || "-";
+  document.getElementById("date").textContent = calc.reportDate || "-";
+  document.getElementById("advisor").textContent = calc.advisorName || "-";
+  setBadge(calc.recommendation || dash.smartSignal || "Hold");
+  document.getElementById("summaryBox").textContent = calc.summary || autoSummary(calc, dash);
+
+  document.getElementById("purchase").textContent = fmtMoney(calc.purchasePrice);
+  document.getElementById("loan").textContent = calc.loanRatio ? calc.loanRatio + "%" : "-";
+  document.getElementById("holding").textContent = calc.holdingYears ? calc.holdingYears + " years" : "-";
+  document.getElementById("mode").textContent = calc.mode || "-";
+
+  document.getElementById("newProfit").textContent = fmtMoney(calc.newProfit);
+  document.getElementById("resaleProfit").textContent = fmtMoney(calc.resaleProfit);
+  document.getElementById("newCf").textContent = fmtMoney(calc.newCashflow);
+  document.getElementById("resaleCf").textContent = fmtMoney(calc.resaleCashflow);
+  document.getElementById("beNew").textContent = fmtPct(calc.beNew);
+  document.getElementById("beResale").textContent = fmtPct(calc.beResale);
+  document.getElementById("winner").textContent = calc.winner || "-";
+  document.getElementById("profitDiff").textContent = fmtMoney(calc.profitDiff);
+
+  document.getElementById("districtPsf").textContent = fmtMoney(dash.districtPsf);
+  document.getElementById("projectPsf").textContent = fmtMoney(dash.projectPsf);
+  document.getElementById("dealScore").textContent = dash.dealScore || "-";
+  document.getElementById("smartSignal").textContent = dash.smartSignal || "-";
+  document.getElementById("projectName").textContent = dash.projectName || calc.projectName || "-";
+  document.getElementById("districtName").textContent = dash.districtName || calc.districtName || "-";
+  document.getElementById("premium").textContent = fmtPct(dash.premium);
+  document.getElementById("relativePerf").textContent = fmtPct(dash.relativePerf);
+  document.getElementById("series").textContent = dash.series || "-";
+  document.getElementById("marketYoy").textContent = fmtPct(dash.marketYoy);
+  document.getElementById("marketQoq").textContent = fmtPct(dash.marketQoq);
+  document.getElementById("momentum").textContent = dash.momentum || "-";
+
+  document.getElementById("recommendation").textContent = calc.recommendation || dash.smartSignal || "-";
+  document.getElementById("confidence").textContent = calc.confidence || "-";
+  document.getElementById("notes").textContent = calc.notes || "No notes provided.";
+})();
+</script>
+</body>
+</html>

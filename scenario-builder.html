@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connected Scenario Builder</title>
+<style>
+:root{
+  --bg:#eef4fb;--card:#fff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;
+  --blue1:#4f7df3;--blue2:#274cda;--shadow:0 10px 24px rgba(15,23,42,.08)
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#f8fbff 100%);color:var(--text);padding:20px}
+.wrap{max-width:1120px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
+h1,h2{margin:0 0 12px}
+.muted{color:var(--muted);line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+label{display:block;font-size:13px;color:var(--muted);font-weight:700;margin-bottom:6px}
+input,textarea,select{width:100%;padding:12px 13px;border:1px solid #d1d5db;border-radius:12px;font-size:15px;background:#fff}
+textarea{min-height:92px;resize:vertical}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.btn{display:inline-block;padding:13px 16px;border:none;border-radius:14px;font-weight:800;cursor:pointer;text-decoration:none}
+.primary{background:linear-gradient(135deg,var(--blue1),var(--blue2));color:#fff}
+.secondary{background:#fff;border:1px solid var(--line);color:var(--text)}
+.pill{display:inline-block;padding:7px 11px;border-radius:999px;background:#eff6ff;border:1px solid #dbeafe;color:#274cda;font-size:12px;font-weight:700;margin-bottom:10px}
+.note{background:#eef4ff;border:1px solid #dbeafe;padding:14px;border-radius:14px;color:#334155;line-height:1.65}
+.nav{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+.nav a{text-decoration:none;color:#274cda;font-weight:700}
+@media (max-width:900px){.grid,.grid4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="pill">Premium Connected Flow</div>
+    <h1>Connected Scenario Builder</h1>
+    <p class="muted">Capture the key scenario once, then pass it into the connected dashboard and printable client report automatically.</p>
+    <div class="nav">
+      <a href="index.html">Front Page</a>
+      <a href="index-calculator.html">Calculator</a>
+      <a href="property-dashboard-connected.html">Dashboard</a>
+      <a href="client-report-connected.html">Client Report</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Client & Scenario</h2>
+    <div class="grid">
+      <div><label>Client Name</label><input id="clientName"></div>
+      <div><label>Report Date</label><input id="reportDate" placeholder="e.g. 3 Apr 2026"></div>
+      <div><label>Advisor / Agent</label><input id="advisorName"></div>
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <div><label>Project / Development</label><input id="projectName"></div>
+      <div><label>District / Area</label><input id="districtName" placeholder="e.g. District 8"></div>
+      <div>
+        <label>Report Type</label>
+        <select id="reportType">
+          <option>Owner Occupier Comparison</option>
+          <option>Investment Comparison</option>
+          <option>Project Benchmark Review</option>
+          <option>Market + Deal Review</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Calculator Outputs</h2>
+    <div class="grid4">
+      <div><label>Purchase Price</label><input id="purchasePrice"></div>
+      <div><label>Loan Ratio (%)</label><input id="loanRatio"></div>
+      <div><label>Holding Period (Years)</label><input id="holdingYears"></div>
+      <div><label>Mode</label><input id="mode" placeholder="Owner Occupied / Investment"></div>
+    </div>
+    <div class="grid4" style="margin-top:14px">
+      <div><label>New Profit</label><input id="newProfit"></div>
+      <div><label>Resale Profit</label><input id="resaleProfit"></div>
+      <div><label>New Monthly Cashflow</label><input id="newCashflow"></div>
+      <div><label>Resale Monthly Cashflow</label><input id="resaleCashflow"></div>
+    </div>
+    <div class="grid4" style="margin-top:14px">
+      <div><label>Winner</label><input id="winner" placeholder="New / Resale"></div>
+      <div><label>Profit Difference</label><input id="profitDiff"></div>
+      <div><label>Break-even Growth New (%)</label><input id="beNew"></div>
+      <div><label>Break-even Growth Resale (%)</label><input id="beResale"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recommendation Notes</h2>
+    <div class="grid">
+      <div>
+        <label>Recommendation</label>
+        <select id="recommendation">
+          <option>Buy</option>
+          <option selected>Hold</option>
+          <option>Caution</option>
+          <option>Avoid</option>
+        </select>
+      </div>
+      <div>
+        <label>Confidence</label>
+        <select id="confidence">
+          <option>High</option>
+          <option selected>Medium</option>
+          <option>Low</option>
+        </select>
+      </div>
+      <div></div>
+    </div>
+    <div style="margin-top:14px"><label>Executive Summary</label><textarea id="summary"></textarea></div>
+    <div style="margin-top:14px"><label>Additional Notes</label><textarea id="notes"></textarea></div>
+    <div class="actions">
+      <button class="btn primary" onclick="saveScenario()">Save Scenario</button>
+      <a class="btn secondary" href="property-dashboard-connected.html">Open Dashboard</a>
+      <a class="btn secondary" href="client-report-connected.html">Open Client Report</a>
+    </div>
+    <div class="note" style="margin-top:14px">This page stores the scenario in your browser using local storage. The dashboard and report will read the same saved scenario automatically.</div>
+  </div>
+</div>
+
+<script>
+function ids(){ return ["clientName","reportDate","advisorName","projectName","districtName","reportType","purchasePrice","loanRatio","holdingYears","mode","newProfit","resaleProfit","newCashflow","resaleCashflow","winner","profitDiff","beNew","beResale","recommendation","confidence","summary","notes"]; }
+function saveScenario(){
+  const data = {};
+  ids().forEach(id => data[id] = document.getElementById(id).value.trim());
+  localStorage.setItem("calcData", JSON.stringify(data));
+  alert("Scenario saved. You can now open the dashboard or client report.");
+}
+(function loadScenario(){
+  const raw = localStorage.getItem("calcData");
+  if(!raw) return;
+  try{
+    const data = JSON.parse(raw);
+    ids().forEach(id => { if(data[id] !== undefined) document.getElementById(id).value = data[id]; });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
