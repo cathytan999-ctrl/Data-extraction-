@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Property Insight Suite</title>
+  <style>
+    :root{
+      --bg:#eef4fb;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;
+      --blue1:#4f7df3;--blue2:#274cda;--shadow:0 12px 30px rgba(15,23,42,.08);
+      --soft:#f8fbff;--good:#15803d;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#f8fbff 100%);color:var(--text)}
+    .wrap{max-width:1180px;margin:0 auto;padding:24px}
+    .hero,.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero{padding:34px;margin-bottom:20px;background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)}
+    .eyebrow{display:inline-block;padding:8px 12px;border-radius:999px;background:#eff6ff;border:1px solid #dbeafe;color:#274cda;font-size:12px;font-weight:700;margin-bottom:14px}
+    h1{margin:0 0 10px;font-size:42px;line-height:1.05;letter-spacing:-0.03em}
+    .sub{margin:0;color:var(--muted);font-size:17px;line-height:1.6;max-width:860px}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+    .btn{display:inline-block;padding:14px 18px;border-radius:14px;text-decoration:none;font-weight:800}
+    .btn-primary{background:linear-gradient(135deg,var(--blue1),var(--blue2));color:#fff}
+    .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--line)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:20px}
+    .card{padding:22px}
+    .card h2{margin:0 0 10px;font-size:22px;letter-spacing:-0.02em}
+    .muted{color:var(--muted);line-height:1.6}
+    .feature-list{margin:12px 0 0;padding-left:18px;color:#334155;line-height:1.7}
+    .split{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-bottom:20px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+    .stat{background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:center}
+    .stat .v{font-size:28px;font-weight:800;margin-bottom:4px}
+    .stat .l{font-size:12px;color:var(--muted);font-weight:700}
+    .steps{counter-reset:step}
+    .step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
+    .step:first-child{border-top:none;padding-top:0}
+    .num{width:34px;height:34px;border-radius:999px;background:#eff6ff;border:1px solid #dbeafe;color:#274cda;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+    .pricing{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+    .tier{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px}
+    .tier h3{margin:0 0 8px;font-size:24px}
+    .tier .tag{display:inline-block;padding:6px 10px;border-radius:999px;background:#eff6ff;color:#274cda;border:1px solid #dbeafe;font-size:12px;font-weight:700;margin-bottom:12px}
+    .source{background:#f8fbff;border:1px solid var(--line);border-radius:18px;padding:16px}
+    .source h3{margin:0 0 8px}
+    footer{color:var(--muted);font-size:13px;padding:6px 2px 28px}
+    @media (max-width: 980px){
+      .grid,.split,.pricing,.stats{grid-template-columns:1fr}
+      h1{font-size:34px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Property Insight Suite</div>
+      <h1>One dashboard for market insight, deal scoring, and project benchmarking.</h1>
+      <p class="sub">Bring together market momentum, district benchmarking, project resale performance, and affordability analysis in one client-ready workflow. Built for clearer decisions, stronger presentations, and better property conversations.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="property-dashboard-turning-point.html">Explore Full Dashboard</a>
+        <a class="btn btn-secondary" href="index.html">Try Property Calculator</a>
+        <a class="btn btn-secondary" href="market-momentum.html">View Market Insight</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v">Macro</div><div class="l">Market momentum</div></div>
+        <div class="stat"><div class="v">District</div><div class="l">Area resale benchmark</div></div>
+        <div class="stat"><div class="v">Project</div><div class="l">Development comparison</div></div>
+        <div class="stat"><div class="v">Score</div><div class="l">Smart signal output</div></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>1. Calculator</h2>
+        <p class="muted">Compare new launch versus resale with affordability checks, holding cost, rental top-up, and final cash-on-hand analysis.</p>
+        <ul class="feature-list">
+          <li>Affordability screening and TDSR logic</li>
+          <li>Holding cost, rental shortfall, and stress test</li>
+          <li>New versus resale comparison</li>
+          <li>Client-friendly report style</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>2. Market Data Engine</h2>
+        <p class="muted">Convert exported transaction and index files into usable JSON for district trend, project trend, and URA macro momentum.</p>
+        <ul class="feature-list">
+          <li>Resale transaction data transformed into district and project history</li>
+          <li>URA quarterly index transformed into momentum data</li>
+          <li>Supports GitHub-hosted static workflow</li>
+          <li>Ready for future automation</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>3. Analytics Dashboard</h2>
+        <p class="muted">See macro market conditions and micro deal quality together so you can explain whether a project is cheap, expensive, strengthening, or weakening.</p>
+        <ul class="feature-list">
+          <li>YoY, QoQ, and turning-point detection</li>
+          <li>District versus project comparison</li>
+          <li>Deal score and smart signal</li>
+          <li>Client-ready commentary</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="split">
+      <div class="card">
+        <h2>Why people will use this</h2>
+        <p class="muted">Most property pages only show listings. This suite explains <b>timing</b>, <b>relative value</b>, and <b>risk</b> in one place. That makes it useful for owner-occupiers, investors, agents, and anyone comparing projects in the same district.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="num">1</div>
+            <div>
+              <b>Understand the market</b>
+              <div class="muted">See whether the broader market is accelerating, slowing, cooling, or stabilising using quarterly market momentum.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <div>
+              <b>Benchmark the district</b>
+              <div class="muted">Use district resale trend and median PSF to anchor realistic pricing, not just marketing stories.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <div>
+              <b>Judge the project</b>
+              <div class="muted">See whether the project trades above or below district and whether it has outperformed or underperformed over time.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">4</div>
+            <div>
+              <b>Make the call</b>
+              <div class="muted">Turn pricing, performance, and market momentum into a deal score and smart signal that is easy to explain.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Data sources</h2>
+        <div class="source">
+          <h3>URA / data.gov.sg</h3>
+          <p class="muted">Macro market momentum comes from the official quarterly private residential property price index published on Singapore's open data portal. It includes long history and supports Overall, CCR, RCR, and OCR series.</p>
+        </div>
+        <div class="source" style="margin-top:12px;">
+          <h3>URA transaction search</h3>
+          <p class="muted">District and project benchmarking comes from exported private residential transaction data. The transaction-search export covers the last 60 months and supports resale, sub-sale, and new sale filtering.</p>
+        </div>
+        <div class="source" style="margin-top:12px;">
+          <h3>Processing layer</h3>
+          <p class="muted">Exported files are transformed into JSON so the dashboard can run on a static site such as GitHub Pages without a backend.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Suggested front-page structure</h2>
+      <div class="pricing">
+        <div class="tier">
+          <div class="tag">Core Tool</div>
+          <h3>Property Calculator</h3>
+          <p class="muted">Best for affordability, new versus resale comparison, holding cost, and client reporting.</p>
+          <a class="btn btn-primary" href="index.html">Check Affordability & Compare</a>
+        </div>
+        <div class="tier">
+          <div class="tag">Premium Insight</div>
+          <h3>Analytics Dashboard</h3>
+          <p class="muted">Best for reading market conditions, comparing district versus project, and generating buy / hold / caution signals.</p>
+          <a class="btn btn-primary" href="property-dashboard-turning-point.html">Explore Market & Deal Insights</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Data credits: Singapore open data portal quarterly private residential property price index dataset, and private residential transaction export data from the official transaction search service.
+    </footer>
+  </div>
+</body>
+</html>
