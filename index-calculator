@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Property Decision Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function downloadReport(){
+  const content = document.querySelector('.wrap').innerHTML;
+  const blob = new Blob([content], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'property_report.html';
+  a.click();
+}
+
+function shareReport(){
+  const text = document.getElementById("summaryNote").innerText;
+  if(navigator.share){
+    navigator.share({
+      title: 'Property Report',
+      text: text
+    });
+  } else {
+    alert('Sharing not supported on this device');
+  }
+}
+
+
+function printReport(){
+  const reportHtml = document.querySelector('.wrap').outerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html>
+      <head>
+        <title>Property Report</title>
+        <meta charset="UTF-8">
+        <style>
+          body{font-family:Arial,Helvetica,sans-serif;padding:20px;background:#fff;color:#111827}
+          .wrap{max-width:1100px;margin:auto}
+          .hero,.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:none}
+          .layout{display:block}
+          .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+          .metric{border:1px solid #e5e7eb;border-radius:14px;padding:14px}
+          .metric .value{font-size:26px;font-weight:800}
+          .section{border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin-top:12px}
+          table{width:100%;border-collapse:collapse;font-size:13px}
+          th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top}
+          th:first-child,td:first-child{text-align:left}
+          .note{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
+          button{display:none!important}
+          input,select{display:none!important}
+          @media print{
+            body{padding:0}
+            .hero,.card,.section,.metric{break-inside:avoid}
+          }
+        </style>
+      </head>
+      <body>${reportHtml}</body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  setTimeout(() => {
+    win.print();
+  }, 500);
+}
+
+</script>
+  <style>
+    :root{--bg:#edf3fb;--card:#ffffff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--shadow:0 10px 24px rgba(0,0,0,.06);--good:#15803d;--warn:#b45309;--bad:#b91c1c;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#edf3fb 0%,#f8fbff 100%);color:var(--text);padding:20px}
+    .wrap{max-width:1150px;margin:auto}
+    .hero,.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero{padding:24px;margin-bottom:18px}.hero h1{margin:0 0 8px;font-size:36px;line-height:1.05}.hero p{margin:0;color:var(--muted);line-height:1.5}
+    .layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{padding:22px}.card h2{margin:0 0 14px;font-size:20px}
+    .inputs{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}
+    .group-title{grid-column:1/-1;margin-top:4px;font-size:14px;font-weight:700;color:#374151;padding-top:8px;border-top:1px solid var(--line)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600}
+    input,select{width:100%;padding:12px 13px;border:1px solid #d8dee8;border-radius:12px;font-size:15px;background:#fff;color:var(--text)}
+    button{width:100%;border:none;border-radius:14px;padding:15px 16px;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;color:#fff;background:linear-gradient(135deg,#2563eb,#1d4ed8)}
+    .helper{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.45}
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .metric{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff}.metric .label{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600}.metric .value{font-size:28px;font-weight:800;line-height:1.1}.metric .tiny{font-size:12px;color:var(--muted);margin-top:6px}
+    .section{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff;margin-top:14px}.section h3{margin:0 0 10px;font-size:17px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+    th:first-child,td:first-child{text-align:left}.strong-row td{font-weight:800}
+    .note{background:#f9fafb;border:1px solid var(--line);border-radius:14px;padding:14px;line-height:1.55;color:#374151;font-size:14px}
+    .signal-strong{color:var(--good);font-weight:700}.signal-moderate{color:var(--warn);font-weight:700}.signal-risky{color:var(--bad);font-weight:700}
+    @media (max-width:900px){.layout,.inputs,.summary-grid{grid-template-columns:1fr}.hero h1{font-size:30px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="screeningCard">
+    <h2>Affordability Screening Check</h2>
+    <div class="inputs">
+      <div><label for="screenSalary">Gross Monthly Salary (SGD)</label><input id="screenSalary" type="number" value=""></div>
+      <div><label for="screenAge">Age</label><input id="screenAge" type="number" value=""></div>
+      <div><label for="screenCash">Cash On Hand (SGD)</label><input id="screenCash" type="number" value=""></div>
+      <div><label for="screenOA">CPF OA Available (SGD)</label><input id="screenOA" type="number" value=""></div>
+      <div><label for="screenOtherDebt">Other Loan Repayment / Month (SGD)</label><input id="screenOtherDebt" type="number" value="0"></div>
+      <div><label for="screenAssumedTenure">Estimated Loan Tenure For Screening (Years)</label><input id="screenAssumedTenure" type="number" value="30"></div>
+      <div><label for="screenDesiredLtv">Preferred Loan Ratio / LTV (%)</label><input id="screenDesiredLtv" type="number" value="75"></div>
+      <div><label for="screenReserveMonths">Reserve Buffer (Months)</label><input id="screenReserveMonths" type="number" value="12"></div>
+      <div class="full"><button type="button" onclick="runScreening()">Check Affordability & Proceed</button>
+        <div class="helper">Estimate only. Uses Singapore TDSR screening at 55% and a 4.0% assessment rate for residential property loans. Final bank assessment may differ.</div>
+      </div>
+    </div>
+    <div class="section" id="screeningResult" style="display:none;">
+      <h3>Estimated Purchase Capacity</h3>
+      <table>
+        <tr><td>TDSR Monthly Budget</td><td id="screenTdsrBudget">$0</td></tr>
+        <tr><td>Estimated Max Loan</td><td id="screenMaxLoan">$0</td></tr>
+        <tr><td>Assumed LTV</td><td id="screenLtv">0%</td></tr>
+        <tr><td>Reserve Buffer Set Aside</td><td id="screenReserveSetAside">$0</td></tr>
+        <tr><td>Usable Cash + OA After Buffer</td><td id="screenUsableFunds">$0</td></tr>
+        <tr><td>Estimated Max Property Price</td><td id="screenMaxPrice">$0</td></tr>
+        <tr><td>Minimum Cash Needed</td><td id="screenMinCash">$0</td></tr>
+        <tr><td>Estimated Total Downpayment</td><td id="screenDownpay">$0</td></tr>
+      </table>
+      <div class="note" id="screeningSummary"></div>
+    </div>
+  </div>
+  <div id="mainApp" style="display:none;">
+    <div class="card" id="validationCard" style="display:none; border:1px solid #fecaca; background:#fff7f7;">
+      <h2 style="color:#b91c1c; margin-bottom:10px;">Cannot Proceed</h2>
+      <div class="note" id="validationMessage" style="border-color:#fecaca; background:#fff1f2;"></div>
+    </div>
+  <div class="hero">
+    <div id="budgetBanner" class="note" style="display:none; margin-bottom:14px;"></div>
+    <h1>Property Decision Calculator</h1>
+    <p>Professional report with top profit cards, executive summary, detailed sections, and key insight.</p>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <h2>Inputs</h2>
+      <div class="inputs">
+        <div class="group-title">Core Assumptions</div>
+        <div><label for="years">Holding Period (Years)</label><input id="years" type="number" value="5"></div>
+        <div><label for="buildYears">Build Years For New</label><input id="buildYears" type="number" value="3"></div>
+        <div><label for="loanPct">Loan %</label><input id="loanPct" type="number" value="75"></div>
+        <div><label for="interestRate">Interest %</label><input id="interestRate" type="number" value="2"></div>
+        <div><label for="loanTenure">Loan Tenure (Years)</label><input id="loanTenure" type="number" value="30"></div>
+        <div><label for="extraReturn">Extra Cash Return %</label><input id="extraReturn" type="number" value="5"></div>
+
+        <div class="group-title">New Property</div>
+        <div><label for="newPrice">New Purchase Price</label><input id="newPrice" value="2500000"></div>
+        <div><label for="newGrowth">New Annual Growth %</label><input id="newGrowth" value="3"></div>
+        <div><label for="newMarketRent">New Monthly Market Rent (for AV estimate)</label><input id="newMarketRent" value="7500"></div>
+        <div><label for="newType">New Occupancy</label><select id="newType"><option value="owner">Owner Occupied</option><option value="invest">Investment</option></select></div>
+        <div><label for="newMcst">New MCST Per Month</label><input id="newMcst" value="350"></div>
+        <div><label for="tempRent">Temporary Housing Cost / Month (Owner Only)</label><input id="tempRent" value="3000"></div>
+        <div><label for="newAgentFee">New Sale Agent Fee %</label><input id="newAgentFee" value="2"></div>
+        <div><label for="newBSDOverride">New BSD Override (0 = auto)</label><input id="newBSDOverride" value="0"></div>
+        <div id="newAdminWrap" style="display:none;"><label for="newAdmin">Leasing / Admin Fee (one-time)</label><input id="newAdmin" value="3000"></div>
+
+        <div class="group-title">Resale Property</div>
+        <div><label for="resalePrice">Resale Purchase Price</label><input id="resalePrice" value="2000000"></div>
+        <div><label for="resaleGrowth">Resale Annual Growth %</label><input id="resaleGrowth" value="3.5"></div>
+        <div><label for="resaleMarketRent">Resale Monthly Market Rent (for AV estimate)</label><input id="resaleMarketRent" value="7500"></div>
+        <div><label for="resaleType">Resale Occupancy</label><select id="resaleType"><option value="owner">Owner Occupied</option><option value="invest">Investment</option></select></div>
+        <div><label for="resaleMcst">Resale MCST Per Month</label><input id="resaleMcst" value="500"></div>
+        <div><label for="resaleAgentFee">Resale Sale Agent Fee %</label><input id="resaleAgentFee" value="2"></div>
+        <div><label for="resaleBSDOverride">Resale BSD Override (0 = auto)</label><input id="resaleBSDOverride" value="0"></div>
+        <div><label for="reno">Resale Renovation Cost</label><input id="reno" value="30000"></div>
+        <div id="resaleAdminWrap" style="display:none;"><label for="resaleAdmin">Leasing / Admin Fee (one-time)</label><input id="resaleAdmin" value="3000"></div>
+
+        <div class="full"><button onclick="calc()">Generate Report</button>
+<button onclick="downloadReport()" style="margin-top:8px;background:#16a34a;">Download Report</button>
+<button onclick="shareReport()" style="margin-top:8px;background:#9333ea;">Share</button>
+<button onclick="printReport()" style="margin-top:8px;background:#ea580c;">Save as PDF</button>
+          <div class="helper">All results are estimates for illustration purposes only. New-project interest is estimated using a progressive construction-stage drawdown model.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="summary-grid">
+        <div class="metric"><div class="label">New Total Profit</div><div id="newProfitCard" class="value">$0</div><div id="newROI" class="tiny">ROI: 0%</div></div>
+        <div class="metric"><div class="label">Resale Total Profit</div><div id="resaleProfitCard" class="value">$0</div><div id="resaleROI" class="tiny">ROI: 0%</div></div>
+      </div>
+
+      <div class="section"><h3>Executive Summary</h3><div id="summaryNote" class="note">No analysis yet.</div></div>
+
+      <div class="section">
+        <h3>Capital Performance</h3>
+        <table>
+          <tr><th>Item</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Future Price</td><td id="newFV">$0</td><td id="resaleFV">$0</td></tr>
+          <tr><td>Purchase Price</td><td id="newPurchase">$0</td><td id="resalePurchase">$0</td></tr>
+          <tr class="strong-row"><td>Total Capital Gain</td><td id="newGain">$0</td><td id="resaleGain">$0</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Holding Cost</h3>
+        <table>
+          <tr><th>Item</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Estimated Progressive Interest</td><td id="newInterestCost">$0</td><td id="resaleInterestCost">$0</td></tr>
+          <tr><td>MCST</td><td id="newMcstCost">$0</td><td id="resaleMcstCost">$0</td></tr>
+          <tr><td>Property Tax</td><td id="newTaxCost">$0</td><td id="resaleTaxCost">$0</td></tr>
+          <tr><td>Temporary Accommodation</td><td id="tempHousingCost">$0</td><td>-</td></tr>
+          <tr><td>Buyer’s Stamp Duty</td><td id="newBSD">$0</td><td id="resaleBSD">$0</td></tr>
+          <tr><td>Sale Agent Fee</td><td id="newAgentCost">$0</td><td id="resaleAgentCost">$0</td></tr>
+          <tr><td>Leasing / Admin Fee</td><td id="newAdminCost">$0</td><td id="resaleAdminCost">$0</td></tr>
+          <tr><td>Renovation</td><td>$0</td><td id="resaleRenoCost">$0</td></tr>
+          <tr class="strong-row"><td>Total Holding Cost</td><td id="newHoldingCost">$0</td><td id="resaleHoldingCost">$0</td></tr>
+          <tr><td>Holding Cost / Purchase Price</td><td id="newHoldingPct">0%</td><td id="resaleHoldingPct">0%</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Cashflow & Extra Return</h3>
+        <table>
+          <tr><th>Item</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Rental Years</td><td id="newRentYears">0</td><td id="resaleRentYears">0</td></tr>
+          <tr><td>Total Rental</td><td id="newRentalTotal">$0</td><td id="resaleRentalTotal">$0</td></tr>
+          <tr><td>Total Top-up Required</td><td id="newTopUpTotal">$0</td><td id="resaleTopUpTotal">$0</td></tr>
+          <tr><td>Extra Cash Available (Equity Difference)</td><td>$0</td><td id="extraCashPrincipal">$0</td></tr>
+          <tr><td>Extra Cash Gain</td><td>$0</td><td id="extraCashGain">$0</td></tr>
+          <tr class="strong-row"><td>Extra Cash Final Value</td><td>$0</td><td id="extraCashFinal">$0</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Monthly Cashflow Breakdown</h3>
+        <table>
+          <tr><th>Item</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Actual Mortgage Payment (Monthly)</td><td id="newMonthlyMortgage">$0</td><td id="resaleMonthlyMortgage">$0</td></tr>
+          <tr><td>Rental Income (Monthly)</td><td id="newMonthlyRent">$0</td><td id="resaleMonthlyRent">$0</td></tr>
+          <tr><td>MCST (Monthly)</td><td id="newMonthlyExpense">$0</td><td id="resaleMonthlyExpense">$0</td></tr>
+          <tr class="strong-row"><td>Monthly Cashflow (Top-up Required / Surplus)</td><td id="newMonthlyNet">$0</td><td id="resaleMonthlyNet">$0</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Stress Test</h3>
+        <table>
+          <tr><th>Scenario</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Base Monthly Cashflow</td><td id="newStressBase">$0</td><td id="resaleStressBase">$0</td></tr>
+          <tr><td>If Interest Rate = 4%</td><td id="newStress4">$0</td><td id="resaleStress4">$0</td></tr>
+          <tr><td>If Interest Rate = 5%</td><td id="newStress5">$0</td><td id="resaleStress5">$0</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Equity Built</h3>
+        <table>
+          <tr><th>Item</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Principal Paid</td><td id="newPrincipal">$0</td><td id="resalePrincipal">$0</td></tr>
+          <tr><td>Remaining Loan At Sale</td><td id="newRemain">$0</td><td id="resaleRemain">$0</td></tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Final Outcome</h3>
+        <table>
+          <tr><th>Item</th><th>New</th><th>Resale</th></tr>
+          <tr><td>Cash On Hand From Property</td><td id="newPropertyCash">$0</td><td id="resalePropertyCash">$0</td></tr>
+          <tr><td>Cash On Hand From Other Investment</td><td id="newOtherCash">$0</td><td id="resaleOtherCash">$0</td></tr>
+          <tr class="strong-row"><td>Total Final Cash On Hand</td><td id="newFinalCash">$0</td><td id="resaleFinalCash">$0</td></tr>
+          <tr><td>Total Profit</td><td id="newProfit">$0</td><td id="resaleProfit">$0</td></tr>
+          <tr><td>ROI Over Holding Period</td><td id="newROITotal">0%</td><td id="resaleROITotal">0%</td></tr>
+          <tr><td>ROI Per Year</td><td id="newROIPerYear">0%</td><td id="resaleROIPerYear">0%</td></tr>
+          <tr><td>Break-even Growth (per year)</td><td id="newBreakEven">0%</td><td id="resaleBreakEven">0%</td></tr>
+          <tr><td>Margin of Safety</td><td id="newMargin">0%</td><td id="resaleMargin">0%</td></tr>
+          <tr><td>Risk Level</td><td id="newSignal">-</td><td id="resaleSignal">-</td></tr>
+        </table>
+      </div>
+
+      <div class="section"><h3>Key Insight</h3><div id="insight" class="note">No insight yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function v(id){ return Number(document.getElementById(id).value || 0); }
+function s(id){ return document.getElementById(id).value; }
+function money(x){ return "$" + Math.round(x).toLocaleString(); }
+function pct(x){ return (x * 100).toFixed(1) + "%"; }
+function setCashColor(id, value){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = money(value);
+  if(value > 0){ el.style.color = "#15803d"; el.style.fontWeight = "700"; }
+  else if(value < 0){ el.style.color = "#b91c1c"; el.style.fontWeight = "700"; }
+  else { el.style.color = "#111827"; el.style.fontWeight = "700"; }
+}
+function amortizedLoanFromMonthly(monthlyBudget, annualRate, years){
+  if(monthlyBudget <= 0 || years <= 0) return 0;
+  const monthlyRate = annualRate / 12;
+  const n = years * 12;
+  if(monthlyRate === 0) return monthlyBudget * n;
+  return monthlyBudget * (1 - Math.pow(1 + monthlyRate, -n)) / monthlyRate;
+}
+
+function setScreeningText(id, value){
+  document.getElementById(id).textContent = value;
+}
+function monthlyPaymentFromLoan(loanAmount, annualRate, years){
+  if(loanAmount <= 0 || years <= 0) return 0;
+  const monthlyRate = annualRate / 12;
+  const n = years * 12;
+  if(monthlyRate === 0) return loanAmount / n;
+  return loanAmount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -n));
+}
+
+function hideValidation(){
+  const card = document.getElementById("validationCard");
+  if(card) card.style.display = "none";
+}
+
+function showValidation(message){
+  const card = document.getElementById("validationCard");
+  const msg = document.getElementById("validationMessage");
+  if(card && msg){
+    msg.innerHTML = message;
+    card.style.display = "block";
+  }
+}
+
+function validateAffordabilityForPrice(price){
+  const salary = Number(document.getElementById("screenSalary").value || 0);
+  const age = Number(document.getElementById("screenAge").value || 0);
+  const cash = Number(document.getElementById("screenCash").value || 0);
+  const oa = Number(document.getElementById("screenOA").value || 0);
+  const otherDebt = Number(document.getElementById("screenOtherDebt").value || 0);
+  const assumedTenureRaw = Number(document.getElementById("screenAssumedTenure").value || 30);
+  const assumedTenure = Math.min(35, Math.max(5, assumedTenureRaw));
+
+  const totalFunds = cash + oa;
+  const tdsrLimit = Math.max(0, salary * 0.55 - otherDebt);
+  const useLowerLtv = assumedTenure > 30 || (age > 0 && age + assumedTenure > 65);
+  const defaultLtv = useLowerLtv ? 0.55 : 0.75;
+  const defaultCashRate = useLowerLtv ? 0.10 : 0.05;
+  const assessmentRate = 0.04;
+
+  const defaultLoan = price * defaultLtv;
+  const defaultMonthly = monthlyPaymentFromLoan(defaultLoan, assessmentRate, assumedTenure);
+  const defaultDownpayment = price - defaultLoan;
+  const defaultCashNeeded = price * defaultCashRate;
+
+  if(totalFunds < defaultDownpayment){
+    return {
+      ok: false,
+      message:
+        "Cash + OA is not enough for this property price. " +
+        "Additional funds required before purchase: <b>" + money(defaultDownpayment - totalFunds) + "</b>." +
+        "<br>Estimated total downpayment needed: <b>" + money(defaultDownpayment) + "</b>." +
+        "<br>Estimated minimum cash needed: <b>" + money(defaultCashNeeded) + "</b>."
+    };
+  }
+
+  if(cash < defaultCashNeeded){
+    return {
+      ok: false,
+      message:
+        "Cash portion is not enough for this property price. " +
+        "Additional cash required before purchase: <b>" + money(defaultCashNeeded - cash) + "</b>." +
+        "<br>Estimated minimum cash needed: <b>" + money(defaultCashNeeded) + "</b>."
+    };
+  }
+
+  if(defaultMonthly <= tdsrLimit){
+    return {
+      ok: true,
+      ltvUsed: defaultLtv,
+      monthlyInstallment: defaultMonthly
+    };
+  }
+
+  // Fallback: if cash + OA is high enough, reduce loan and test again
+  const maxAffordableLoan = amortizedLoanFromMonthly(tdsrLimit, assessmentRate, assumedTenure);
+  const requiredEquity = price - maxAffordableLoan;
+  const requiredCashForReducedLoan = Math.max(price * 0.05, price - maxAffordableLoan - oa);
+
+  if(totalFunds >= requiredEquity && cash >= requiredCashForReducedLoan){
+    return {
+      ok: true,
+      ltvUsed: maxAffordableLoan / price,
+      monthlyInstallment: tdsrLimit,
+      warning:
+        "TDSR does not support the default loan size. However, based on your cash + OA, the loan can be reduced and the purchase may still proceed subject to final bank approval."
+    };
+  }
+
+  let shortage = Math.max(0, requiredEquity - totalFunds);
+  return {
+    ok: false,
+    message:
+      "Salary is not enough for the estimated loan under TDSR rules." +
+      "<br>Estimated TDSR monthly limit: <b>" + money(tdsrLimit) + "</b>." +
+      "<br>Estimated monthly instalment for this price: <b>" + money(defaultMonthly) + "</b>." +
+      (shortage > 0
+        ? "<br>To proceed, additional cash / OA required to reduce the loan: <b>" + money(shortage) + "</b>."
+        : "")
+  };
+}
+
+function runScreening(){
+  const salary = Number(document.getElementById("screenSalary").value || 0);
+  const age = Number(document.getElementById("screenAge").value || 0);
+  const cash = Number(document.getElementById("screenCash").value || 0);
+  const oa = Number(document.getElementById("screenOA").value || 0);
+  const otherDebt = Number(document.getElementById("screenOtherDebt").value || 0);
+  const assumedTenure = Math.min(35, Math.max(5, Number(document.getElementById("screenAssumedTenure").value || 30)));
+
+  const tdsrMonthlyBudget = Math.max(0, salary * 0.55 - otherDebt);
+  const assessmentRate = 0.04;
+
+  // Conservative first-loan estimate for private residential property:
+  // if tenure > 30 years or extends beyond age 65, use lower LTV bucket.
+  const useLowerLtv = assumedTenure > 30 || (age > 0 && age + assumedTenure > 65);
+  const ltv = useLowerLtv ? 0.55 : 0.75;
+  const minCashRate = useLowerLtv ? 0.10 : 0.05;
+
+  const maxLoan = amortizedLoanFromMonthly(tdsrMonthlyBudget, assessmentRate, assumedTenure);
+  const totalFunds = cash + oa;
+
+  const maxPriceByLoan = ltv > 0 ? maxLoan / ltv : 0;
+  const maxPriceByFunds = (1 - ltv) > 0 ? totalFunds / (1 - ltv) : 0;
+  const maxPriceByCash = minCashRate > 0 ? cash / minCashRate : 0;
+
+  const maxPropertyPrice = Math.max(0, Math.min(maxPriceByLoan, maxPriceByFunds, maxPriceByCash));
+  const minCashNeeded = maxPropertyPrice * minCashRate;
+  const totalDownpayment = maxPropertyPrice * (1 - ltv);
+
+  document.getElementById("screeningResult").style.display = "block";
+  setScreeningText("screenTdsrBudget", money(tdsrMonthlyBudget));
+  setScreeningText("screenMaxLoan", money(maxLoan));
+  setScreeningText("screenLtv", pct(ltv));
+  setScreeningText("screenMaxPrice", money(maxPropertyPrice));
+  setScreeningText("screenMinCash", money(minCashNeeded));
+  setScreeningText("screenDownpay", money(totalDownpayment));
+
+  const summary = document.getElementById("screeningSummary");
+  if(maxPropertyPrice <= 0){
+    summary.innerHTML = "Based on the information entered, the estimated property budget is currently too low to proceed. Please review income, cash, OA, debt or tenure assumptions. Final bank assessment may differ.";
+    document.getElementById("mainApp").style.display = "none";
+    document.getElementById("budgetBanner").style.display = "none";
+    return;
+  }
+
+  summary.innerHTML =
+    "<b>Estimated maximum purchase price:</b> " + money(maxPropertyPrice) +
+    "<br><b>Assessment basis:</b> 55% TDSR, 4.0% screening rate, assumed tenure " + assumedTenure + " years, assumed LTV " + pct(ltv) + "." +
+    "<br><b>Important:</b> This is an estimate only. Final bank approval, actual rate, credit profile, property type, age/tenure treatment and documentation may change the result.";
+
+  // Prefill both scenarios with the screened budget if current fields are empty or still default
+  if (!document.getElementById("newPrice").dataset.userEdited) {
+    document.getElementById("newPrice").value = Math.round(maxPropertyPrice);
+  }
+  if (!document.getElementById("resalePrice").dataset.userEdited) {
+    document.getElementById("resalePrice").value = Math.round(maxPropertyPrice);
+  }
+
+  const banner = document.getElementById("budgetBanner");
+  banner.style.display = "block";
+  banner.innerHTML =
+    "<b>Screening passed.</b> Estimated purchase capacity: " + money(maxPropertyPrice) +
+    " using 55% TDSR and a 4.0% assessment rate. Proceed to compare new vs resale below.";
+
+  document.getElementById("mainApp").style.display = "block";
+  calc();
+}
+
+
+function toggleAdmin(){
+  document.getElementById("newAdminWrap").style.display = s("newType")==="invest" ? "block" : "none";
+  document.getElementById("resaleAdminWrap").style.display = s("resaleType")==="invest" ? "block" : "none";
+}
+function getSignal(margin){
+  if(margin > 0.01) return {text:"Safe Entry", cls:"signal-strong"};
+  if(margin > 0) return {text:"Moderate", cls:"signal-moderate"};
+  return {text:"High Risk", cls:"signal-risky"};
+}
+function setSignal(id, signal){ const el=document.getElementById(id); el.textContent=signal.text; el.className=signal.cls; }
+function propertyTaxFromAV(av, type){
+  let tax = 0;
+  if(type === "owner"){
+    const bands = [[12000,0],[28000,0.04],[10000,0.06],[25000,0.10],[10000,0.14],[15000,0.20],[40000,0.26],[Infinity,0.32]];
+    let rem = av;
+    for(const [amt, rate] of bands){ const slice=Math.min(rem,amt); if(slice<=0) break; tax+=slice*rate; rem-=slice; }
+  } else {
+    const bands = [[30000,0.12],[15000,0.20],[15000,0.28],[Infinity,0.36]];
+    let rem = av;
+    for(const [amt, rate] of bands){ const slice=Math.min(rem,amt); if(slice<=0) break; tax+=slice*rate; rem-=slice; }
+  }
+  return tax;
+}
+function bsdResidential(price){
+  let duty=0, rem=price;
+  const bands=[[180000,0.01],[180000,0.02],[640000,0.03],[500000,0.04],[1500000,0.05],[Infinity,0.06]];
+  for(const [amt, rate] of bands){ const slice=Math.min(rem,amt); if(slice<=0) break; duty+=slice*rate; rem-=slice; }
+  return Math.floor(duty);
+}
+function amortizationPrincipalPaid(loanAmount, annualRate, tenureYears, paymentYears){
+  if(loanAmount<=0 || tenureYears<=0 || paymentYears<=0) return {principalPaid:0, interestPaid:0};
+  const monthlyRate=annualRate/12, totalMonths=tenureYears*12, paidMonths=Math.min(paymentYears*12,totalMonths);
+  if(monthlyRate===0) return {principalPaid:(loanAmount/totalMonths)*paidMonths, interestPaid:0};
+  const payment=loanAmount*monthlyRate/(1-Math.pow(1+monthlyRate,-totalMonths));
+  let balance=loanAmount,totalInterest=0,totalPrincipal=0;
+  for(let m=0;m<paidMonths;m++){ const interest=balance*monthlyRate; const principal=Math.min(payment-interest,balance); totalInterest+=interest; totalPrincipal+=principal; balance-=principal; if(balance<=0) break; }
+  return {principalPaid:totalPrincipal, interestPaid:totalInterest};
+}
+function progressiveNewLoan(loanAmount, annualRate, buildYears, holdingYears, loanTenure){
+  const monthlyRate=annualRate/12,totalMonths=loanTenure*12,buildMonths=buildYears*12,holdMonths=holdingYears*12;
+  let interestPaid=0, principalPaid=0;
+  const drawStages=[10/75,10/75,10/75,5/75,5/75,25/75,10/75];
+  const milestoneMonths=[]; for(let i=1;i<=drawStages.length;i++) milestoneMonths.push(Math.round((i/drawStages.length)*buildMonths));
+  let balance=0,drawn=0,nextStage=0;
+  for(let m=1;m<=Math.min(buildMonths,holdMonths);m++){ while(nextStage<milestoneMonths.length && m>=milestoneMonths[nextStage]){ drawn+=loanAmount*drawStages[nextStage]; if(drawn>loanAmount) drawn=loanAmount; balance=drawn; nextStage++; } interestPaid+=balance*monthlyRate; }
+  const postBuildMonths=Math.max(0,holdMonths-buildMonths);
+  if(postBuildMonths>0){ balance=loanAmount; const payment=loanAmount*monthlyRate/(1-Math.pow(1+monthlyRate,-totalMonths)); for(let m=0;m<postBuildMonths;m++){ const interest=balance*monthlyRate; const principal=Math.min(payment-interest,balance); interestPaid+=interest; principalPaid+=principal; balance-=principal; if(balance<=0) break; } }
+  return {interestPaid, principalPaid};
+}
+function calcSide(prefix, years, buildYears, loanPct, interestPct, loanTenure){
+  const price=v(prefix+"Price"), growth=v(prefix+"Growth")/100, marketRentAnnual=v(prefix+"MarketRent")*12, type=s(prefix+"Type"), mcstAnnual=v(prefix+"Mcst")*12, agentFeePct=v(prefix+"AgentFee")/100, bsdOverride=v(prefix+"BSDOverride"), adminFee=type==="invest"?v(prefix+"Admin"):0;
+  const annualTax=propertyTaxFromAV(marketRentAnnual,type), futureValue=price*Math.pow(1+growth,years), capitalGain=futureValue-price, loanAmount=price*loanPct, liveYears=prefix==="new"?Math.max(0,years-buildYears):years;
+  let principalPaid=0, interestCost=0;
+  if(prefix==="new"){ const progressive=progressiveNewLoan(loanAmount,interestPct,buildYears,years,loanTenure); principalPaid=progressive.principalPaid; interestCost=progressive.interestPaid; } else { const amort=amortizationPrincipalPaid(loanAmount,interestPct,loanTenure,years); principalPaid=amort.principalPaid; interestCost=amort.interestPaid; }
+  const remainingLoan=Math.max(0,loanAmount-principalPaid), rentalYears=type==="invest"?liveYears:0, rentalTotal=marketRentAnnual*rentalYears, mcstCost=mcstAnnual*liveYears, taxCost=annualTax*liveYears, agentFee=futureValue*agentFeePct, bsd=bsdOverride>0?bsdOverride:bsdResidential(price);
+  return {price,futureValue,capitalGain,remainingLoan,principalPaid,interestCost,rentalYears,rentalTotal,mcstCost,taxCost,agentFee,bsd,adminFee};
+}
+function calc(){
+  toggleAdmin();
+  hideValidation();
+  const years=v("years"), buildYears=v("buildYears"), loanPct=v("loanPct")/100, interestPct=v("interestRate")/100, loanTenure=v("loanTenure"), extraReturn=v("extraReturn")/100, reno=v("reno");
+  const tempHousingCost = s("newType")==="owner" ? v("tempRent") * 12 * buildYears : 0;
+
+  const newCheck = validateAffordabilityForPrice(v("newPrice"));
+  if(!newCheck.ok){
+    showValidation("<b>New Property:</b><br>" + newCheck.message);
+    return;
+  }
+
+  const resaleCheck = validateAffordabilityForPrice(v("resalePrice"));
+  if(!resaleCheck.ok){
+    showValidation("<b>Resale Property:</b><br>" + resaleCheck.message);
+    return;
+  }
+
+  const n=calcSide("new",years,buildYears,loanPct,interestPct,loanTenure), r=calcSide("resale",years,buildYears,loanPct,interestPct,loanTenure);
+  const extraCashPrincipal=Math.max(0,(n.price-r.price)*(1-loanPct)), extraCashFinal=extraCashPrincipal*Math.pow(1+extraReturn,years), extraGain=extraCashFinal-extraCashPrincipal;
+  const newHoldingCost=n.interestCost+n.mcstCost+n.taxCost+n.bsd+n.agentFee+n.adminFee+tempHousingCost;
+  const resaleHoldingCost=r.interestCost+r.mcstCost+r.taxCost+r.bsd+r.agentFee+r.adminFee+reno;
+  const newPropertyCash=s("newType")==="invest"?(n.futureValue-n.remainingLoan-n.agentFee+n.rentalTotal):(n.futureValue-n.remainingLoan-n.agentFee);
+  const resalePropertyCash=s("resaleType")==="invest"?(r.futureValue-r.remainingLoan-r.agentFee+r.rentalTotal):(r.futureValue-r.remainingLoan-r.agentFee);
+  const newOtherCash=0, resaleOtherCash=extraCashFinal, newFinalCash=newPropertyCash+newOtherCash, resaleFinalCash=resalePropertyCash+resaleOtherCash;
+  const newProfit=s("newType")==="invest"?(n.capitalGain-newHoldingCost+n.rentalTotal):(n.capitalGain-newHoldingCost);
+  const resaleProfit=s("resaleType")==="invest"?(r.capitalGain-resaleHoldingCost+r.rentalTotal+extraGain):(r.capitalGain-resaleHoldingCost+extraGain);
+  const newCashBase=n.price*(1-loanPct)+newHoldingCost, resaleCashBase=r.price*(1-loanPct)+resaleHoldingCost, newROI=newCashBase>0?newProfit/newCashBase:0, resaleROI=resaleCashBase>0?resaleProfit/resaleCashBase:0;
+  const requiredFutureNew=s("newType")==="invest"?(n.price+newHoldingCost-n.rentalTotal):(n.price+newHoldingCost), requiredFutureResale=s("resaleType")==="invest"?(r.price+resaleHoldingCost-r.rentalTotal-extraGain):(r.price+resaleHoldingCost-extraGain);
+  const newBreakEven=requiredFutureNew>0?Math.pow(requiredFutureNew/n.price,1/years)-1:0, resaleBreakEven=requiredFutureResale>0?Math.pow(requiredFutureResale/r.price,1/years)-1:0;
+  const newMargin=(v("newGrowth")/100)-newBreakEven, resaleMargin=(v("resaleGrowth")/100)-resaleBreakEven;
+
+  // Monthly cashflow / top-up calculations
+  const salary = Number((document.getElementById("screenSalary") && document.getElementById("screenSalary").value) || 0);
+
+  // Actual monthly mortgage commitment after keys / completion:
+  // for NEW, show full repayment on the full loan, not progressive construction drawdown
+  const newMonthlyMortgage = monthlyPaymentFromLoan(n.price * loanPct, interestPct, loanTenure);
+  const resaleMonthlyMortgage = monthlyPaymentFromLoan(r.price * loanPct, interestPct, loanTenure);
+
+  const newRentalMonths = n.rentalYears > 0 ? (n.rentalYears * 12) : 0;
+  const resaleRentalMonths = r.rentalYears > 0 ? (r.rentalYears * 12) : 0;
+
+  const newMonthlyRent =
+    s("newType")==="invest" && newRentalMonths > 0
+      ? (n.rentalTotal / newRentalMonths)
+      : 0;
+
+  const resaleMonthlyRent =
+    s("resaleType")==="invest" && resaleRentalMonths > 0
+      ? (r.rentalTotal / resaleRentalMonths)
+      : 0;
+
+  // MCST should appear for both owner-occupied and investment scenarios.
+  // Property tax remains included because it is still a real monthly ownership cost.
+  const newMonthlyExpense = v("newMcst");
+  const resaleMonthlyExpense = v("resaleMcst");
+
+  const newMonthlyNet =
+    s("newType")==="invest"
+      ? (newMonthlyRent - newMonthlyMortgage - newMonthlyExpense)
+      : (0 - newMonthlyMortgage - newMonthlyExpense);
+
+  const resaleMonthlyNet =
+    s("resaleType")==="invest"
+      ? (resaleMonthlyRent - resaleMonthlyMortgage - resaleMonthlyExpense)
+      : (0 - resaleMonthlyMortgage - resaleMonthlyExpense);
+
+  const newMonthlyTopUp = Math.max(0, -newMonthlyNet);
+  const resaleMonthlyTopUp = Math.max(0, -resaleMonthlyNet);
+
+  const newTopUpTotal = newMonthlyTopUp * years * 12;
+  const resaleTopUpTotal = resaleMonthlyTopUp * years * 12;
+
+  function stressMonthlyNet(side, stressRate, typeValue){
+    const monthlyMortgage = monthlyPaymentFromLoan(side.price * loanPct, stressRate, loanTenure);
+    const rentalMonths = side.rentalYears > 0 ? (side.rentalYears * 12) : 0;
+    const monthlyRent =
+      typeValue==="invest" && rentalMonths > 0
+        ? (side.rentalTotal / rentalMonths)
+        : 0;
+    const monthlyExpense = (side.mcstCost + side.taxCost + side.adminFee) / (years * 12);
+    return monthlyRent - monthlyMortgage - monthlyExpense;
+  }
+
+  const newStress4 = stressMonthlyNet(n, 0.04, s("newType"));
+  const resaleStress4 = stressMonthlyNet(r, 0.04, s("resaleType"));
+  const newStress5 = stressMonthlyNet(n, 0.05, s("newType"));
+  const resaleStress5 = stressMonthlyNet(r, 0.05, s("resaleType"));
+  const winnerIsResale=resaleProfit>newProfit, diff=Math.abs(resaleProfit-newProfit);
+
+  const newCashText =
+    newMonthlyNet < 0
+      ? "<span style='color:#b91c1c;font-weight:700'>Top-up required: " + money(Math.abs(newMonthlyNet)) + "/month</span>"
+      : "<span style='color:#15803d;font-weight:700'>Surplus: " + money(newMonthlyNet) + "/month</span>";
+
+  const resaleCashText =
+    resaleMonthlyNet < 0
+      ? "<span style='color:#b91c1c;font-weight:700'>Top-up required: " + money(Math.abs(resaleMonthlyNet)) + "/month</span>"
+      : "<span style='color:#15803d;font-weight:700'>Surplus: " + money(resaleMonthlyNet) + "/month</span>";
+
+  // Salary plus / minus actual monthly property cashflow
+  const newIncomeAfterCommitment = salary + newMonthlyNet;
+  const resaleIncomeAfterCommitment = salary + resaleMonthlyNet;
+
+  document.getElementById("newProfitCard").textContent=money(newProfit);
+  document.getElementById("resaleProfitCard").textContent=money(resaleProfit);
+  document.getElementById("newROI").textContent="ROI: "+pct(newROI);
+  document.getElementById("resaleROI").textContent="ROI: "+pct(resaleROI);
+  document.getElementById("summaryNote").innerHTML =
+    "<b>Winner:</b> " + (winnerIsResale ? "RESALE" : "NEW") +
+    "<br><b>Profit Difference:</b> " + money(diff) +
+
+    "<br><br><b>Break-even Growth (per year):</b>" +
+    "<br>New: <span style='font-weight:700'>" + pct(newBreakEven) + "</span>" +
+    "<br>Resale: <span style='font-weight:700'>" + pct(resaleBreakEven) + "</span>" +
+
+    "<br><br><b>Monthly Cashflow (after mortgage, rent and fees):</b>" +
+    "<br>New: " + newCashText +
+    "<br>Resale: " + resaleCashText +
+
+    "<br><br><b>Income After Property Commitment:</b>" +
+    "<br>New: " + money(newIncomeAfterCommitment) + "/month" +
+    "<br>Resale: " + money(resaleIncomeAfterCommitment) + "/month" +
+
+    "<br><br><b>Risk Profile:</b> " +
+    (winnerIsResale
+      ? "Resale offers lower downside risk and is more resilient to market fluctuations."
+      : "New property carries higher risk as it depends on consistent capital growth to remain profitable.") +
+
+    "<br><br><b>Key Insight:</b> " +
+    (winnerIsResale
+      ? "Lower entry price and extra cash investment improve overall returns for resale."
+      : "New property may deliver higher upside, but requires sustained growth to justify the higher cost.");
+
+
+  document.getElementById("newFV").textContent=money(n.futureValue);
+  document.getElementById("resaleFV").textContent=money(r.futureValue);
+  document.getElementById("newPurchase").textContent=money(n.price);
+  document.getElementById("resalePurchase").textContent=money(r.price);
+  document.getElementById("newGain").textContent=money(n.capitalGain);
+  document.getElementById("resaleGain").textContent=money(r.capitalGain);
+
+  document.getElementById("newInterestCost").textContent=money(n.interestCost);
+  document.getElementById("resaleInterestCost").textContent=money(r.interestCost);
+  document.getElementById("newMcstCost").textContent=money(n.mcstCost);
+  document.getElementById("resaleMcstCost").textContent=money(r.mcstCost);
+  document.getElementById("newTaxCost").textContent=money(n.taxCost);
+  document.getElementById("resaleTaxCost").textContent=money(r.taxCost);
+  if(document.getElementById("tempHousingCost")) document.getElementById("tempHousingCost").textContent=money(tempHousingCost);
+  document.getElementById("newBSD").textContent=money(n.bsd);
+  document.getElementById("resaleBSD").textContent=money(r.bsd);
+  document.getElementById("newAgentCost").textContent=money(n.agentFee);
+  document.getElementById("resaleAgentCost").textContent=money(r.agentFee);
+  document.getElementById("newAdminCost").textContent=money(n.adminFee);
+  document.getElementById("resaleAdminCost").textContent=money(r.adminFee);
+  document.getElementById("resaleRenoCost").textContent=money(reno);
+  document.getElementById("newHoldingCost").textContent=money(newHoldingCost);
+  document.getElementById("resaleHoldingCost").textContent=money(resaleHoldingCost);
+  document.getElementById("newHoldingPct").textContent=pct(newHoldingCost/n.price);
+  document.getElementById("resaleHoldingPct").textContent=pct(resaleHoldingCost/r.price);
+
+  document.getElementById("newRentYears").textContent=n.rentalYears;
+  document.getElementById("resaleRentYears").textContent=r.rentalYears;
+  document.getElementById("newRentalTotal").textContent=money(n.rentalTotal);
+  document.getElementById("resaleRentalTotal").textContent=money(r.rentalTotal);
+  document.getElementById("extraCashPrincipal").textContent=money(extraCashPrincipal);
+  document.getElementById("extraCashGain").textContent=money(extraGain);
+  document.getElementById("extraCashFinal").textContent=money(extraCashFinal);
+
+  document.getElementById("newPrincipal").textContent=money(n.principalPaid);
+  document.getElementById("resalePrincipal").textContent=money(r.principalPaid);
+  document.getElementById("newRemain").textContent=money(n.remainingLoan);
+  document.getElementById("resaleRemain").textContent=money(r.remainingLoan);
+
+  document.getElementById("newPropertyCash").textContent=money(newPropertyCash);
+  document.getElementById("resalePropertyCash").textContent=money(resalePropertyCash);
+  document.getElementById("newOtherCash").textContent=money(newOtherCash);
+  document.getElementById("resaleOtherCash").textContent=money(resaleOtherCash);
+  document.getElementById("newFinalCash").textContent=money(newFinalCash);
+  document.getElementById("resaleFinalCash").textContent=money(resaleFinalCash);
+
+  document.getElementById("newProfit").textContent=money(newProfit);
+  document.getElementById("resaleProfit").textContent=money(resaleProfit);
+  document.getElementById("newROITotal").textContent=pct(newROI);
+  document.getElementById("resaleROITotal").textContent=pct(resaleROI);
+  document.getElementById("newROIPerYear").textContent=pct(newROI/years);
+  document.getElementById("resaleROIPerYear").textContent=pct(resaleROI/years);
+
+  if(document.getElementById("newTopUpTotal")) document.getElementById("newTopUpTotal").textContent = money(newTopUpTotal);
+  if(document.getElementById("resaleTopUpTotal")) document.getElementById("resaleTopUpTotal").textContent = money(resaleTopUpTotal);
+
+  if(document.getElementById("newMonthlyMortgage")) document.getElementById("newMonthlyMortgage").textContent=money(newMonthlyMortgage);
+  if(document.getElementById("resaleMonthlyMortgage")) document.getElementById("resaleMonthlyMortgage").textContent=money(resaleMonthlyMortgage);
+  if(document.getElementById("newMonthlyRent")) document.getElementById("newMonthlyRent").textContent=money(newMonthlyRent);
+  if(document.getElementById("resaleMonthlyRent")) document.getElementById("resaleMonthlyRent").textContent=money(resaleMonthlyRent);
+  if(document.getElementById("newMonthlyExpense")) document.getElementById("newMonthlyExpense").textContent=money(newMonthlyExpense);
+  if(document.getElementById("resaleMonthlyExpense")) document.getElementById("resaleMonthlyExpense").textContent=money(resaleMonthlyExpense);
+  if(document.getElementById("newMonthlyNet")) setCashColor("newMonthlyNet", newMonthlyNet);
+  if(document.getElementById("resaleMonthlyNet")) setCashColor("resaleMonthlyNet", resaleMonthlyNet);
+  if(document.getElementById("newStressBase")) setCashColor("newStressBase", newMonthlyNet);
+  if(document.getElementById("resaleStressBase")) setCashColor("resaleStressBase", resaleMonthlyNet);
+  if(document.getElementById("newStress4")) setCashColor("newStress4", newStress4);
+  if(document.getElementById("resaleStress4")) setCashColor("resaleStress4", resaleStress4);
+  if(document.getElementById("newStress5")) setCashColor("newStress5", newStress5);
+  if(document.getElementById("resaleStress5")) setCashColor("resaleStress5", resaleStress5);
+
+  document.getElementById("newBreakEven").textContent = pct(newBreakEven) + " (Needs growth to break even)";
+  document.getElementById("resaleBreakEven").textContent = resaleBreakEven <= 0 ? (pct(resaleBreakEven) + " (Profitable even with flat market)") : (pct(resaleBreakEven) + " (Needs growth to break even)");
+  document.getElementById("newMargin").textContent=pct(newMargin);
+  document.getElementById("resaleMargin").textContent=pct(resaleMargin);
+  setSignal("newSignal", getSignal(newMargin));
+  setSignal("resaleSignal", getSignal(resaleMargin));
+
+  document.getElementById("insight").textContent=winnerIsResale?"Resale performs better in this scenario because the lower entry price and invested surplus cash improve the total result.":"New performs better in this scenario because stronger property performance offsets the resale extra-cash advantage.";
+}
+document.getElementById("newType").addEventListener("change", () => { toggleAdmin(); calc(); });
+document.getElementById("resaleType").addEventListener("change", () => { toggleAdmin(); calc(); });
+
+document.getElementById("newPrice").addEventListener("input", () => { document.getElementById("newPrice").dataset.userEdited = "1"; });
+document.getElementById("resalePrice").addEventListener("input", () => { document.getElementById("resalePrice").dataset.userEdited = "1"; });
+toggleAdmin();
+
+function downloadReport(){
+  const content = document.querySelector('.wrap').innerHTML;
+  const blob = new Blob([content], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'property_report.html';
+  a.click();
+}
+
+function shareReport(){
+  const text = document.getElementById("summaryNote").innerText;
+  if(navigator.share){
+    navigator.share({
+      title: 'Property Report',
+      text: text
+    });
+  } else {
+    alert('Sharing not supported on this device');
+  }
+}
+
+
+function printReport(){
+  const reportHtml = document.querySelector('.wrap').outerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html>
+      <head>
+        <title>Property Report</title>
+        <meta charset="UTF-8">
+        <style>
+          body{font-family:Arial,Helvetica,sans-serif;padding:20px;background:#fff;color:#111827}
+          .wrap{max-width:1100px;margin:auto}
+          .hero,.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:none}
+          .layout{display:block}
+          .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+          .metric{border:1px solid #e5e7eb;border-radius:14px;padding:14px}
+          .metric .value{font-size:26px;font-weight:800}
+          .section{border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin-top:12px}
+          table{width:100%;border-collapse:collapse;font-size:13px}
+          th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top}
+          th:first-child,td:first-child{text-align:left}
+          .note{border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff}
+          button{display:none!important}
+          input,select{display:none!important}
+          @media print{
+            body{padding:0}
+            .hero,.card,.section,.metric{break-inside:avoid}
+          }
+        </style>
+      </head>
+      <body>${reportHtml}</body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  setTimeout(() => {
+    win.print();
+  }, 500);
+}
+
+</script>
+</body>
+</html>
