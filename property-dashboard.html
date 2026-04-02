@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root{
+    --bg:#eef4fb; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --blue1:#4f7df3; --blue2:#274cda; --soft:#f8fbff; --good:#15803d; --warn:#b45309; --bad:#b91c1c;
+    --shadow:0 10px 24px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef4fb 0%,#f8fbff 100%);color:var(--text);padding:20px}
+  .container{max-width:1120px;margin:auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:20px;box-shadow:var(--shadow)}
+  .header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  h2,h3{margin:0 0 14px}
+  .pill{display:inline-block;padding:7px 11px;border-radius:999px;background:#eff6ff;border:1px solid #dbeafe;color:#274cda;font-size:12px;font-weight:700}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  select{padding:12px 14px;border-radius:12px;border:1px solid #d1d5db;background:white;font-size:16px;max-width:100%}
+  .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:14px 0}
+  .metric{background:#f9fafb;border:1px solid var(--line);padding:15px;border-radius:16px;text-align:center}
+  .metric h4{margin:0;color:#667085;font-size:13px;font-weight:700}
+  .metric p{margin:8px 0 0;font-size:20px;font-weight:800}
+  .two-col{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+  .subcard{background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:16px}
+  .subcard h3{font-size:18px}
+  .note{background:#eef4ff;border:1px solid #dbeafe;padding:16px;border-radius:16px;line-height:1.7;color:#334155}
+  .good{color:var(--good)!important;font-weight:800}
+  .warn{color:var(--warn)!important;font-weight:800}
+  .bad{color:var(--bad)!important;font-weight:800}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+  th:first-child,td:first-child{text-align:left}
+  th{color:#667085;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  canvas{width:100% !important;max-height:340px}
+  .qoq-wrap{margin-top:14px}
+  .footer-note{font-size:12px;color:#64748b;margin-top:8px}
+  @media (max-width:920px){
+    .metrics{grid-template-columns:1fr 1fr}
+    .two-col{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="card">
+    <div class="header">
+      <h2>📈 Market Momentum</h2>
+      <span class="pill">Macro View</span>
+    </div>
+
+    <div class="controls">
+      <select id="series">
+        <option value="Overall">Overall</option>
+        <option value="CCR">CCR</option>
+        <option value="RCR">RCR</option>
+        <option value="OCR" selected>OCR</option>
+      </select>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><h4>Latest YoY</h4><p id="yoy">-</p></div>
+      <div class="metric"><h4>Latest QoQ</h4><p id="qoq">-</p></div>
+      <div class="metric"><h4>Previous YoY</h4><p id="prevYoy">-</p></div>
+      <div class="metric"><h4>Momentum Read</h4><p id="momentumRead">-</p></div>
+    </div>
+
+    <div class="two-col">
+      <div class="subcard">
+        <h3>Quarterly Index Trend</h3>
+        <canvas id="momentumChart"></canvas>
+      </div>
+      <div class="subcard qoq-wrap">
+        <h3>QoQ Growth Trend</h3>
+        <canvas id="qoqChart"></canvas>
+        <div class="footer-note">Shows quarter-to-quarter movement from 2021 onward so slowdown is easier to spot.</div>
+      </div>
+    </div>
+
+    <div class="note" id="marketCommentary" style="margin-top:16px;">No market commentary yet.</div>
+
+    <div class="subcard" style="margin-top:16px;">
+      <div class="header">
+        <h3>Quarterly Momentum Table</h3>
+        <span class="pill">Shown from 2025</span>
+      </div>
+      <table id="momentumTable">
+        <thead>
+          <tr>
+            <th>Quarter</th>
+            <th>Index</th>
+            <th>YoY</th>
+            <th>QoQ</th>
+            <th>Read</th>
+            <th>Turning Point</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6">No quarterly data yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="header">
+      <h2>🏠 Deal Analyzer</h2>
+      <span class="pill">District vs Project</span>
+    </div>
+
+    <div class="controls">
+      <select id="district"></select>
+      <select id="project"></select>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><h4>District PSF</h4><p id="dpsf">-</p></div>
+      <div class="metric"><h4>Project PSF</h4><p id="ppsf">-</p></div>
+      <div class="metric"><h4>Deal Score</h4><p id="score">-</p></div>
+      <div class="metric"><h4>Smart Signal</h4><p id="signal">-</p></div>
+    </div>
+
+    <div class="subcard">
+      <h3>District vs Project Trend</h3>
+      <canvas id="dealChart"></canvas>
+    </div>
+
+    <div class="subcard" style="margin-top:16px;">
+      <h3>Yearly Comparison</h3>
+      <table id="dealTable">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>District PSF</th>
+            <th>District Growth</th>
+            <th>Project PSF</th>
+            <th>Project Growth</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5">No yearly comparison yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note" id="dealCommentary" style="margin-top:16px;">No deal commentary yet.</div>
+  </div>
+
+</div>
+
+<script>
+let uraData, resaleData, mChart, qChart, dChart;
+window.currentMarketYoy = null;
+window.currentMomentum = null;
+
+function pct(x){ return (x > 0 ? "+" : "") + x.toFixed(1) + "%"; }
+function money(x){ return "$" + Math.round(Number(x || 0)).toLocaleString(); }
+
+function calcYoy(data, i){
+  if(i < 4) return null;
+  return ((data[i].index / data[i-4].index) - 1) * 100;
+}
+function calcQoq(data, i){
+  if(i < 1) return null;
+  return ((data[i].index / data[i-1].index) - 1) * 100;
+}
+function classifyMomentum(currYoy, prevYoy, currQoq){
+  if(currYoy == null) return "Insufficient data";
+  if(prevYoy == null){
+    if(currQoq != null && currQoq < 0) return "Short-term pullback";
+    return currYoy > 0 ? "Growing" : currYoy < 0 ? "Contracting" : "Flat";
+  }
+  if(currYoy > 0 && currYoy > prevYoy) return "Accelerating";
+  if(currYoy > 0 && currYoy < prevYoy) return "Slowing";
+  if(currYoy < 0 && currYoy < prevYoy) return "Worsening";
+  if(currYoy < 0 && currYoy > prevYoy) return "Recovering";
+  if(currQoq != null && currQoq < 0) return "Losing momentum";
+  return "Stable";
+}
+function detectTurningPoint(currYoy, prevYoy, currQoq, prevQoq){
+  if(currYoy == null || prevYoy == null) return "Not enough history";
+  if(prevYoy < 0 && currYoy > 0) return "Upturn";
+  if(prevYoy > 0 && currYoy < 0) return "Downturn";
+  if(currYoy > 0 && prevYoy > 0 && currQoq != null && prevQoq != null && prevQoq < 0 && currQoq > 0) return "Re-acceleration";
+  if(currYoy > 0 && prevYoy > 0 && currQoq != null && prevQoq != null && prevQoq > 0 && currQoq < 0) return "Cooling";
+  if(currYoy < 0 && prevYoy < 0 && currYoy > prevYoy) return "Bottoming";
+  if(currYoy < 0 && prevYoy < 0 && currYoy < prevYoy) return "Further weakening";
+  return "No clear turn";
+}
+function setClass(el, val){
+  el.className = "";
+  if(val == null) return;
+  if(val > 0) el.className = "good";
+  else if(val < 0) el.className = "warn";
+  else el.className = "bad";
+}
+
+function renderMarket(){
+  const s = document.getElementById("series").value;
+  const d = uraData[s];
+  const i = d.length - 1;
+  const yoy = calcYoy(d, i);
+  const qoq = calcQoq(d, i);
+  const prevYoy = (i - 1) >= 0 ? calcYoy(d, i - 1) : null;
+  const prevQoq = (i - 1) >= 0 ? calcQoq(d, i - 1) : null;
+  const momentum = classifyMomentum(yoy, prevYoy, qoq);
+  const turningPoint = detectTurningPoint(yoy, prevYoy, qoq, prevQoq);
+
+  window.currentMarketYoy = yoy;
+  window.currentMomentum = momentum;
+
+  const yoyEl = document.getElementById("yoy");
+  const qoqEl = document.getElementById("qoq");
+  const prevEl = document.getElementById("prevYoy");
+  const readEl = document.getElementById("momentumRead");
+  yoyEl.innerText = yoy != null ? pct(yoy) : "-";
+  qoqEl.innerText = qoq != null ? pct(qoq) : "-";
+  prevEl.innerText = prevYoy != null ? pct(prevYoy) : "-";
+  readEl.innerText = momentum;
+  setClass(yoyEl, yoy);
+  setClass(qoqEl, qoq);
+  setClass(prevEl, prevYoy);
+
+  if(mChart) mChart.destroy();
+  mChart = new Chart(document.getElementById("momentumChart"), {
+    type:"line",
+    data:{
+      labels:d.map(x=>x.quarter),
+      datasets:[{label:"Index",data:d.map(x=>x.index),tension:0.3,borderWidth:3,fill:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:true}
+  });
+
+  const qoqData = d.map((row, idx) => calcQoq(d, idx));
+  if(qChart) qChart.destroy();
+  qChart = new Chart(document.getElementById("qoqChart"), {
+    type:"line",
+    data:{
+      labels:d.map(x=>x.quarter),
+      datasets:[{
+        label:"QoQ %",
+        data:qoqData,
+        tension:0.3,
+        borderWidth:3,
+        fill:true
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      scales:{ y:{ ticks:{ callback:(v)=>v + "%" } } }
+    }
+  });
+
+  const startIndex = d.findIndex(x => String(x.quarter).includes("2025"));
+  const tbody = document.querySelector("#momentumTable tbody");
+  const items = d.map((row, idx) => ({row, idx})).filter(item => startIndex === -1 ? true : item.idx >= startIndex);
+  tbody.innerHTML = items.map(({row, idx}) => {
+    const rowYoy = calcYoy(d, idx);
+    const rowQoq = calcQoq(d, idx);
+    const rowPrevYoy = idx > 0 ? calcYoy(d, idx - 1) : null;
+    const rowPrevQoq = idx > 0 ? calcQoq(d, idx - 1) : null;
+    const rowRead = classifyMomentum(rowYoy, rowPrevYoy, rowQoq);
+    const rowTurn = detectTurningPoint(rowYoy, rowPrevYoy, rowQoq, rowPrevQoq);
+    return `<tr>
+      <td>${row.quarter}</td>
+      <td>${Number(row.index).toFixed(1)}</td>
+      <td class="${rowYoy == null ? "" : rowYoy > 0 ? "good" : rowYoy < 0 ? "warn" : "bad"}">${rowYoy == null ? "-" : pct(rowYoy)}</td>
+      <td class="${rowQoq == null ? "" : rowQoq > 0 ? "good" : rowQoq < 0 ? "warn" : "bad"}">${rowQoq == null ? "-" : pct(rowQoq)}</td>
+      <td>${rowRead}</td>
+      <td>${rowTurn}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("marketCommentary").innerHTML =
+    `<b>Series:</b> ${s}<br>
+     <b>Current YoY:</b> ${yoy != null ? pct(yoy) : "-"}<br>
+     <b>Previous YoY:</b> ${prevYoy != null ? pct(prevYoy) : "-"}<br>
+     <b>Current QoQ:</b> ${qoq != null ? pct(qoq) : "-"}<br>
+     <b>Momentum:</b> <b>${momentum}</b><br>
+     <b>Turning Point:</b> <b>${turningPoint}</b><br><br>
+     ${turningPoint === "Cooling" ? "The market is still positive year on year, but momentum has softened. That points to a cooling phase rather than a collapse." :
+       turningPoint === "Re-acceleration" ? "The market is strengthening again after a softer patch." :
+       turningPoint === "Upturn" ? "The market has moved back into positive yearly growth." :
+       turningPoint === "Downturn" ? "The market has rolled into negative yearly growth." :
+       momentum === "Slowing" ? "Prices are still rising, but the pace is easing compared with the previous quarter." :
+       momentum === "Accelerating" ? "Yearly growth is improving versus the previous quarter." :
+       momentum === "Recovering" ? "The market is still below last year, but the contraction is easing." :
+       momentum === "Worsening" ? "The market is weakening further versus the prior yearly reading." :
+       "There is enough history to monitor direction using both YoY and QoQ."}`;
+}
+
+function dealScore(premium, relativePerf, momentum){
+  let score = 5;
+  if(premium != null) score += (-premium / 4);
+  if(relativePerf != null) score += (relativePerf / 1.5);
+  if(momentum === "Accelerating") score += 2;
+  else if(momentum === "Growing") score += 1;
+  else if(momentum === "Stable") score += 0;
+  else if(momentum === "Slowing") score -= 1;
+  else if(momentum === "Worsening") score -= 2;
+  return Math.max(0, Math.min(10, score));
+}
+function smartSignal(score){
+  if(score >= 8) return "STRONG BUY";
+  if(score >= 6.5) return "BUY";
+  if(score >= 5) return "HOLD";
+  if(score >= 3.5) return "CAUTION";
+  return "AVOID";
+}
+function colorSignal(el, text){
+  el.innerText = text;
+  el.className = "";
+  if(text === "STRONG BUY" || text === "BUY") el.className = "good";
+  else if(text === "HOLD") el.className = "bad";
+  else el.className = "warn";
+}
+
+function renderDeal(){
+  const d = document.getElementById("district").value;
+  const p = document.getElementById("project").value;
+  const area = resaleData[d];
+  const proj = area.developments[p];
+
+  document.getElementById("dpsf").innerText = money(area.areaMedianPsf);
+  document.getElementById("ppsf").innerText = money(proj.medianPsf);
+
+  const years = Array.from(new Set([
+    ...Object.keys(area.yearlyTrend || {}),
+    ...Object.keys(proj.yearlyTrend || {})
+  ])).sort();
+
+  const districtSeries = years.map(y => area.yearlyTrend && area.yearlyTrend[y] ? area.yearlyTrend[y].medianPsf : null);
+  const projectSeries = years.map(y => proj.yearlyTrend && proj.yearlyTrend[y] ? proj.yearlyTrend[y].medianPsf : null);
+
+  const premium = ((proj.medianPsf / area.areaMedianPsf) - 1) * 100;
+
+  let relativePerf = null;
+  const ayears = Object.keys(area.yearlyTrend || {}).sort();
+  const pyears = Object.keys(proj.yearlyTrend || {}).sort();
+  if(ayears.length >= 2 && pyears.length >= 2){
+    const distPerf = ((area.yearlyTrend[ayears[ayears.length-1]].medianPsf / area.yearlyTrend[ayears[0]].medianPsf) - 1) * 100;
+    const projPerf = ((proj.yearlyTrend[pyears[pyears.length-1]].medianPsf / proj.yearlyTrend[pyears[0]].medianPsf) - 1) * 100;
+    relativePerf = projPerf - distPerf;
+  }
+
+  const score = dealScore(premium, relativePerf, window.currentMomentum);
+  const signal = smartSignal(score);
+
+  document.getElementById("score").innerText = score.toFixed(1);
+  colorSignal(document.getElementById("signal"), signal);
+
+  if(dChart) dChart.destroy();
+  dChart = new Chart(document.getElementById("dealChart"), {
+    type:"line",
+    data:{
+      labels:years,
+      datasets:[
+        {label:"District",data:districtSeries,tension:0.3,borderWidth:3,fill:false},
+        {label:"Project",data:projectSeries,tension:0.3,borderWidth:3,fill:false}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:true,spanGaps:true}
+  });
+
+  const tbody = document.querySelector("#dealTable tbody");
+  tbody.innerHTML = years.map(y => {
+    const dTrend = area.yearlyTrend && area.yearlyTrend[y] ? area.yearlyTrend[y] : null;
+    const pTrend = proj.yearlyTrend && proj.yearlyTrend[y] ? proj.yearlyTrend[y] : null;
+    return `<tr>
+      <td>${y}</td>
+      <td>${dTrend ? money(dTrend.medianPsf) : "-"}</td>
+      <td class="${dTrend ? (dTrend.growth > 0 ? 'good' : dTrend.growth < 0 ? 'warn' : 'bad') : ''}">${dTrend ? pct(dTrend.growth) : "-"}</td>
+      <td>${pTrend ? money(pTrend.medianPsf) : "-"}</td>
+      <td class="${pTrend ? (pTrend.growth > 0 ? 'good' : pTrend.growth < 0 ? 'warn' : 'bad') : ''}">${pTrend ? pct(pTrend.growth) : "-"}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("dealCommentary").innerHTML =
+    `<b>District PSF:</b> ${money(area.areaMedianPsf)}<br>
+     <b>Project PSF:</b> ${money(proj.medianPsf)}<br>
+     <b>Premium / Discount vs district:</b> ${premium >= 0 ? "+" : ""}${premium.toFixed(1)}%<br>
+     <b>Relative performance vs district:</b> ${relativePerf != null ? ((relativePerf >= 0 ? "+" : "") + relativePerf.toFixed(1) + "%") : "Not enough project history"}<br>
+     <b>Deal score:</b> ${score.toFixed(1)} / 10<br>
+     <b>Smart signal:</b> <b>${signal}</b>`;
+}
+
+function init(){
+  const d = Object.keys(resaleData);
+  document.getElementById("district").innerHTML = d.map(x=>`<option>${x}</option>`).join("");
+  updateProject();
+  renderDeal();
+}
+function updateProject(){
+  const d = document.getElementById("district").value;
+  const p = Object.keys(resaleData[d].developments);
+  document.getElementById("project").innerHTML = p.map(x=>`<option>${x}</option>`).join("");
+}
+
+fetch("./ura-index.json").then(r=>r.json()).then(d=>{ uraData = d; renderMarket(); renderDeal(); });
+fetch("./resale-data.json").then(r=>r.json()).then(d=>{ resaleData = d; init(); });
+
+document.getElementById("series").addEventListener("change",renderMarket);
+document.getElementById("district").addEventListener("change",()=>{ updateProject(); renderDeal(); });
+document.getElementById("project").addEventListener("change",renderDeal);
+</script>
+</body>
+</html>
