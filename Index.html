@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{font-family:Arial;margin:0;background:#f4f7fb;padding:20px}
+.container{max-width:1100px;margin:auto}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 5px 15px rgba(0,0,0,0.08)}
+h2{margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px}
+.metric{background:#f9fafb;padding:15px;border-radius:10px;text-align:center}
+.metric h4{margin:0;color:#666;font-size:13px}
+.metric p{margin:5px 0 0;font-size:20px;font-weight:bold}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="card">
+<h2>📈 Market Momentum (URA Index)</h2>
+<select id="series">
+<option value="OCR">OCR</option>
+<option value="RCR">RCR</option>
+<option value="CCR">CCR</option>
+<option value="Overall">Overall</option>
+</select>
+
+<div class="grid">
+<div class="metric"><h4>YoY</h4><p id="yoy">-</p></div>
+<div class="metric"><h4>QoQ</h4><p id="qoq">-</p></div>
+</div>
+
+<canvas id="momentumChart"></canvas>
+</div>
+
+<div class="card">
+<h2>🏠 Deal Analyzer</h2>
+
+<select id="district"></select>
+<select id="project"></select>
+
+<div class="grid">
+<div class="metric"><h4>District PSF</h4><p id="dpsf">-</p></div>
+<div class="metric"><h4>Project PSF</h4><p id="ppsf">-</p></div>
+<div class="metric"><h4>Deal Score</h4><p id="score">-</p></div>
+<div class="metric"><h4>Smart Signal</h4><p id="signal">-</p></div>
+</div>
+
+<canvas id="dealChart"></canvas>
+
+</div>
+
+</div>
+
+<script>
+let uraData, resaleData, mChart, dChart;
+
+function pct(x){return (x>0?"+":"")+x.toFixed(1)+"%";}
+
+// ===== MARKET =====
+function calcYoy(data,i){
+if(i<4) return null;
+return ((data[i].index/data[i-4].index)-1)*100;
+}
+function calcQoq(data,i){
+if(i<1) return null;
+return ((data[i].index/data[i-1].index)-1)*100;
+}
+
+function renderMarket(){
+const s=document.getElementById("series").value;
+const d=uraData[s];
+const i=d.length-1;
+
+const yoy=calcYoy(d,i);
+const qoq=calcQoq(d,i);
+window.currentMarketYoy = yoy;
+
+document.getElementById("yoy").innerText=(yoy!==null && yoy!==undefined)?pct(yoy):"-";
+document.getElementById("qoq").innerText=(qoq!==null && qoq!==undefined)?pct(qoq):"-";
+
+if(mChart) mChart.destroy();
+mChart=new Chart(document.getElementById("momentumChart"),{
+type:"line",
+data:{labels:d.map(x=>x.quarter),
+datasets:[{label:"Index",data:d.map(x=>x.index)}]}
+});
+}
+
+// ===== DEAL =====
+function dealScore(premium,perf){
+let s=5;
+if(premium!=null) s+=(-premium/4);
+if(perf!=null) s+=(perf/1.5);
+return Math.max(0,Math.min(10,s));
+}
+
+function renderDeal(){
+const d=document.getElementById("district").value;
+const p=document.getElementById("project").value;
+
+const area=resaleData[d];
+const proj=area.developments[p];
+
+document.getElementById("dpsf").innerText="$"+area.areaMedianPsf;
+document.getElementById("ppsf").innerText="$"+proj.medianPsf;
+
+const years=Object.keys(area.yearlyTrend);
+const dpsf=years.map(y=>area.yearlyTrend[y].medianPsf);
+
+const pyears=proj.yearlyTrend?Object.keys(proj.yearlyTrend):[];
+const ppsf=pyears.map(y=>proj.yearlyTrend[y].medianPsf);
+
+const premium=((proj.medianPsf/area.areaMedianPsf)-1)*100;
+
+let perf=null;
+if(proj.yearlyTrend){
+const first=pyears[0],last=pyears[pyears.length-1];
+perf=((proj.yearlyTrend[last].medianPsf/proj.yearlyTrend[first].medianPsf)-1)*100;
+}
+
+const score=dealScore(premium,perf);
+document.getElementById("score").innerText=score.toFixed(1);
+
+const signal = smartSignal(window.currentMarketYoy ?? null, premium, perf, score);
+colorSignal(document.getElementById("signal"), signal);
+
+if(dChart) dChart.destroy();
+dChart=new Chart(document.getElementById("dealChart"),{
+type:"line",
+data:{
+labels:years,
+datasets:[
+{label:"District",data:dpsf},
+{label:"Project",data:ppsf}
+]}
+});
+}
+
+
+function smartSignal(marketYoy, premium, perf, score){
+  if(marketYoy !== null && marketYoy < 0 && premium > 0 && (perf === null || perf < 0)) return "AVOID";
+  if(marketYoy !== null && marketYoy > 0 && premium < 0 && (perf === null || perf >= 0) && score >= 6.5) return "BUY";
+  if(marketYoy !== null && marketYoy > 0 && premium > 0 && perf > 0) return "HOLD";
+  if(marketYoy !== null && marketYoy < 1 && premium > 5) return "CAUTION";
+  return "WATCH";
+}
+
+function colorSignal(el, text){
+  el.innerText = text;
+  if(text === "BUY"){ el.style.color = "#15803d"; }
+  else if(text === "AVOID" || text === "CAUTION"){ el.style.color = "#b91c1c"; }
+  else if(text === "HOLD"){ el.style.color = "#b45309"; }
+  else { el.style.color = "#111827"; }
+}
+
+function init(){
+const d=Object.keys(resaleData);
+document.getElementById("district").innerHTML=d.map(x=>`<option>${x}</option>`).join("");
+updateProject();
+renderDeal();
+}
+
+function updateProject(){
+const d=document.getElementById("district").value;
+const p=Object.keys(resaleData[d].developments);
+document.getElementById("project").innerHTML=p.map(x=>`<option>${x}</option>`).join("");
+}
+
+// LOAD DATA
+fetch("./ura-index.json").then(r=>r.json()).then(d=>{uraData=d;renderMarket();});
+fetch("./resale-data.json").then(r=>r.json()).then(d=>{resaleData=d;init();});
+
+// EVENTS
+document.getElementById("series").addEventListener("change",renderMarket);
+document.getElementById("district").addEventListener("change",()=>{updateProject();renderDeal();});
+document.getElementById("project").addEventListener("change",renderDeal);
+</script>
+
+</body>
+</html>
