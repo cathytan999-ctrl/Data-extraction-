@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Resale Market Insights</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.select-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+select, button {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.metrics {
+  display: flex;
+  gap: 10px;
+}
+
+.metric-box {
+  flex: 1;
+  background: #f9fafb;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.metric-box h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.metric-box p {
+  margin: 5px 0 0;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  text-align: right;
+}
+
+th:first-child, td:first-child {
+  text-align: left;
+}
+
+.note {
+  margin-top: 15px;
+  background: #eef4ff;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Resale Market Insights</h2>
+
+    <div class="select-row">
+      <select id="district"></select>
+      <select id="development"></select>
+      <button onclick="render()">Load</button>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-box">
+        <h3>Area Median PSF</h3>
+        <p id="area">$0</p>
+      </div>
+
+      <div class="metric-box">
+        <h3>Project Median PSF</h3>
+        <p id="project">$0</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Price Trend</h3>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>5-Year Growth</h3>
+    <table id="table"></table>
+  </div>
+
+  <div class="card">
+    <h3>Insight</h3>
+    <div id="insight" class="note"></div>
+  </div>
+
+</div>
+
+<script>
+let data;
+let chart;
+
+function money(x){return "$"+Math.round(x).toLocaleString();}
+function pct(x){return Number(x).toFixed(1)+"%";}
+
+function init(){
+  const d = Object.keys(data);
+  document.getElementById("district").innerHTML =
+    d.map(x=>`<option>${x}</option>`).join("");
+  updateDev();
+}
+
+function updateDev(){
+  const d = document.getElementById("district").value;
+  const dev = Object.keys(data[d].developments);
+  document.getElementById("development").innerHTML =
+    dev.map(x=>`<option>${x}</option>`).join("");
+}
+
+function render(){
+  const d = document.getElementById("district").value;
+  const dev = document.getElementById("development").value;
+
+  const area = data[d];
+  const proj = area.developments[dev];
+
+  document.getElementById("area").innerText = money(area.areaMedianPsf);
+  document.getElementById("project").innerText = money(proj.medianPsf);
+
+  const years = Object.keys(area.yearlyTrend);
+  const psf = years.map(y=>area.yearlyTrend[y].medianPsf);
+
+  if(chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type:"line",
+    data:{
+      labels:years,
+      datasets:[{
+        label:"Median PSF",
+        data:psf,
+        tension:0.3
+      }]
+    }
+  });
+
+  document.getElementById("table").innerHTML =
+    "<tr><th>Year</th><th>PSF</th><th>Growth</th></tr>" +
+    years.map(y=>`<tr>
+      <td>${y}</td>
+      <td>${money(area.yearlyTrend[y].medianPsf)}</td>
+      <td>${pct(area.yearlyTrend[y].growth)}</td>
+    </tr>`).join("");
+
+  // Insight
+  const first = psf[0];
+  const last = psf[psf.length-1];
+  const yearsCount = psf.length-1;
+
+  const CAGR = Math.pow(last/first,1/yearsCount)-1;
+
+  document.getElementById("insight").innerHTML =
+    "Area: <b>"+d+"</b><br>" +
+    "Project: <b>"+dev+"</b><br><br>" +
+    "5Y Growth: <b>"+pct(CAGR*100)+"</b><br>" +
+    "Latest PSF: <b>"+money(area.areaMedianPsf)+"</b><br><br>" +
+    "This area shows consistent resale performance and provides a benchmark for pricing.";
+}
+
+fetch("./resale-data.json")
+.then(r=>r.json())
+.then(j=>{
+  data=j;
+  init();
+  render();
+});
+
+document.getElementById("district").addEventListener("change", ()=>{
+  updateDev();
+  render();
+});
+</script>
+
+</body>
+</html>
